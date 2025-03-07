@@ -94,6 +94,5 @@ int main(int argc, char* argv[])
     //Đợi phím bất kỳ trước khi đóng môi trường đồ họa và kết thúc chương trình
     waitUntilKeyPressed();
     quitSDL(window, renderer);
-    cout<<"world hello";
     return 0;
 }
