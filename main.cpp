@@ -1,6 +1,8 @@
-#include <iostream>
+#include<iostream>
 #include<vector>
-#include <SDL.h>
+#include<algorithm>
+#include<cstdlib>
+#include<SDL.h>
 
 using namespace std;
 
@@ -9,6 +11,8 @@ const int SCREEN_HEIGHT=600;
 const int TILE_SIZE=40;
 const int MAP_WIDTH=SCREEN_WIDTH/TILE_SIZE;
 const int MAP_HEIGHT=SCREEN_HEIGHT/TILE_SIZE;
+const int BULLET_SIZE=10;
+const int BULLET_SPEED=5;
 
 class Wall
 {
@@ -34,17 +38,61 @@ public:
     }
 };
 
+class Bullet
+{
+public:
+    int x, y;
+    int dirX,dirY;
+    bool active;
+    SDL_Rect rect;
+
+    Bullet(int startX,int startY,int dX,int dY)
+    {
+        x=startX;
+        y=startY;
+        dirX=dX;
+        dirY=dY;
+        active=true;
+        rect={x,y,BULLET_SIZE,BULLET_SIZE};
+    }
+
+    void update()
+    {
+        x+=dirX*BULLET_SPEED;
+        y+=dirY*BULLET_SPEED;
+        rect.x=x;
+        rect.y=y;
+
+        if(x<0||x>SCREEN_WIDTH||y<0||y>SCREEN_HEIGHT)
+        {
+            active=false;
+        }
+    }
+
+    void render(SDL_Renderer *renderer)
+    {
+        if(active)
+        {
+            SDL_SetRenderDrawColor(renderer,255,0,0,255);
+            SDL_RenderFillRect(renderer,&rect);
+        }
+    }
+};
+
+
+
 class PlayerTank
 {
 public:
     int x,y;
     int dirX,dirY;
     SDL_Rect rect;
+    vector<Bullet> bullets;
     PlayerTank(int startX,int startY)
     {
         x=startX;
         y=startY;
-        rect={x,y,TILE_SIZE,TILE_SIZE};
+        rect= {x,y,TILE_SIZE,TILE_SIZE};
         dirX=0;
         dirY=-1;//Default direction up
     }
@@ -56,8 +104,8 @@ public:
         this->dirX=dx;
         this->dirY=dy;
 
-        SDL_Rect newRect={newX,newY,TILE_SIZE,TILE_SIZE};
-        for (int i=0;i<walls.size();i++)
+        SDL_Rect newRect= {newX,newY,TILE_SIZE,TILE_SIZE};
+        for (int i=0; i<walls.size(); i++)
         {
             if (walls[i].active&&SDL_HasIntersection(&newRect,&walls[i].rect))
             {
@@ -74,10 +122,44 @@ public:
         }
     }
 
+    void shoot()
+    {
+        int bulletX=x+TILE_SIZE/2-BULLET_SIZE/2;
+        int bulletY=y+TILE_SIZE/2-BULLET_SIZE/2;
+        bullets.push_back(Bullet(bulletX,bulletY,dirX,dirY));
+    }
+
+    void updateBullets(vector<Wall>&walls)
+    {
+        for (auto&bullet:bullets)
+        {
+            if(bullet.active)
+            {
+                bullet.update();
+                for(auto&wall:walls)
+                {
+                    if(wall.active&&SDL_HasIntersection(&bullet.rect,&wall.rect))
+                    {
+                        bullet.active=false;
+                        wall.active=false;//Đạn bắn vào tường sẽ phá hủy tường
+                    }
+                }
+            }
+        }
+        bullets.erase(remove_if(bullets.begin(),bullets.end(),[](Bullet &b)
+        {
+            return !b.active;
+        }), bullets.end());
+    }
+
     void render(SDL_Renderer *renderer)
     {
         SDL_SetRenderDrawColor(renderer,255,255,0,255);
         SDL_RenderFillRect(renderer,&rect);
+        for (auto &bullet : bullets)
+        {
+            bullet.render(renderer);
+        }
     }
 };
 
@@ -92,9 +174,9 @@ public:
 
     void generateWalls()
     {
-        for (int i=3;i<MAP_HEIGHT-3;i+=2)
+        for (int i=3; i<MAP_HEIGHT-3; i+=2)
         {
-            for(int j=3;j<MAP_WIDTH-3;j+=2)
+            for(int j=3; j<MAP_WIDTH-3; j+=2)
             {
                 Wall w=Wall(j*TILE_SIZE,i*TILE_SIZE);
                 walls.push_back(w);
@@ -140,10 +222,21 @@ public:
             {
                 switch(event.key.keysym.sym)
                 {
-                    case SDLK_UP:player.move(0,-5,walls);break;
-                    case SDLK_DOWN:player.move(0,5,walls);break;
-                    case SDLK_LEFT:player.move(-5,0,walls);break;
-                    case SDLK_RIGHT:player.move(5,0,walls);break;
+                case SDLK_UP:
+                    player.move(0,-5,walls);
+                    break;
+                case SDLK_DOWN:
+                    player.move(0,5,walls);
+                    break;
+                case SDLK_LEFT:
+                    player.move(-5,0,walls);
+                    break;
+                case SDLK_RIGHT:
+                    player.move(5,0,walls);
+                    break;
+                case SDLK_SPACE:
+                    player.shoot();
+                    break;
                 }
             }
         }
@@ -164,7 +257,7 @@ public:
             }
         }
 
-        for(int i=0;i<walls.size();++i)
+        for(int i=0; i<walls.size(); ++i)
         {
             walls[i].render(renderer);
         }
@@ -178,6 +271,7 @@ public:
         while(running)
         {
             handleEvents();
+            player.updateBullets(walls);
             render();
             SDL_Delay(16);
         }
