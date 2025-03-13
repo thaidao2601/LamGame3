@@ -1,7 +1,9 @@
 #include<iostream>
 #include<vector>
 #include<algorithm>
-#include<cstdlib>
+#include<SDL_image.h>
+#include<SDL_ttf.h>
+#include<SDL_mixer.h>
 #include<SDL.h>
 
 using namespace std;
@@ -12,7 +14,10 @@ const int TILE_SIZE=40;
 const int MAP_WIDTH=SCREEN_WIDTH/TILE_SIZE;
 const int MAP_HEIGHT=SCREEN_HEIGHT/TILE_SIZE;
 const int BULLET_SIZE=10;
-const int BULLET_SPEED=5;
+const int PlayersNum=1;
+const int EnemiesNum=3;
+const int EnemymoveDelay=15;
+const int EnemyshootDelay=1;
 
 class Wall
 {
@@ -26,7 +31,7 @@ public:
         x=startX;
         y=startY;
         active=true;
-        rect= {x,y,TILE_SIZE,TILE_SIZE};
+        rect={x,y,TILE_SIZE,TILE_SIZE};
     }
     void render(SDL_Renderer *renderer)
     {
@@ -42,28 +47,27 @@ class Bullet
 {
 public:
     int x,y;
-    int dirX,dirY;
-    bool active;
+    int dx,dy;
     SDL_Rect rect;
+    bool active;
 
-    Bullet(int startX,int startY,int dX,int dY)
+    Bullet(int startX,int startY,int dirX,int dirY)
     {
         x=startX;
         y=startY;
-        dirX=dX;
-        dirY=dY;
+        dx=dirX;
+        dy=dirY;
         active=true;
-        rect={x,y,BULLET_SIZE,BULLET_SIZE};
+        rect={x,y,BULLET_SIZE,BULLET_SIZE};//Square shape bullet
     }
 
-    void update()
+    void move()
     {
-        x+=dirX*BULLET_SPEED;
-        y+=dirY*BULLET_SPEED;
+        x+=dx;
+        y+=dy;
         rect.x=x;
         rect.y=y;
-
-        if(x<0||x>SCREEN_WIDTH||y<0||y>SCREEN_HEIGHT)
+        if(x<TILE_SIZE||x>SCREEN_WIDTH-TILE_SIZE||y<TILE_SIZE||y>SCREEN_HEIGHT-TILE_SIZE)
         {
             active=false;
         }
@@ -71,15 +75,14 @@ public:
 
     void render(SDL_Renderer *renderer)
     {
-        if(active)
+        if (active)
         {
-            SDL_SetRenderDrawColor(renderer,255,0,0,255);
+            SDL_SetRenderDrawColor(renderer,255,255,255,255);
             SDL_RenderFillRect(renderer,&rect);
         }
     }
+
 };
-
-
 
 class PlayerTank
 {
@@ -88,11 +91,12 @@ public:
     int dirX,dirY;
     SDL_Rect rect;
     vector<Bullet>bullets;
+
     PlayerTank(int startX,int startY)
     {
         x=startX;
         y=startY;
-        rect= {x,y,TILE_SIZE,TILE_SIZE};
+        rect={x,y,TILE_SIZE,TILE_SIZE};
         dirX=0;
         dirY=-1;//Default direction up
     }
@@ -104,8 +108,8 @@ public:
         this->dirX=dx;
         this->dirY=dy;
 
-        SDL_Rect newRect= {newX,newY,TILE_SIZE,TILE_SIZE};
-        for(int i=0; i<int(walls.size()); i++)
+        SDL_Rect newRect={newX,newY,TILE_SIZE,TILE_SIZE};
+        for(int i=0;i<int(walls.size());i++)
         {
             if (walls[i].active&&SDL_HasIntersection(&newRect,&walls[i].rect))
             {
@@ -124,42 +128,27 @@ public:
 
     void shoot()
     {
-        int bulletX=x+TILE_SIZE/2-BULLET_SIZE/2;
-        int bulletY=y+TILE_SIZE/2-BULLET_SIZE/2;
-        bullets.push_back(Bullet(bulletX,bulletY,dirX,dirY));
+        bullets.push_back(Bullet(x+TILE_SIZE/2-BULLET_SIZE/2,y+TILE_SIZE/2-BULLET_SIZE/2,this->dirX,this->dirY));
     }
 
-    void updateBullets(vector<Wall>&walls)
+    void updateBullets()
     {
-        for (auto&bullet:bullets)
+        for(auto&bullet:bullets)
         {
-            if(bullet.active)
-            {
-                bullet.update();
-                for(auto&wall:walls)
-                {
-                    if(wall.active&&SDL_HasIntersection(&bullet.rect,&wall.rect))
-                    {
-                        bullet.active=false;
-                        wall.active=false;//Đạn bắn vào tường sẽ phá hủy tường
-                    }
-                }
-            }
+            bullet.move();
         }
-        bullets.erase(remove_if(bullets.begin(),bullets.end(),[](Bullet &b)
-        {
-            return !b.active;
-        }), bullets.end());
+        bullets.erase(remove_if(bullets.begin(),bullets.end(),
+                                [](Bullet &b){return !b.active;}), bullets.end());
     }
 
     void render(SDL_Renderer *renderer)
     {
         SDL_SetRenderDrawColor(renderer,255,255,0,255);
         SDL_RenderFillRect(renderer,&rect);
-        for (auto &bullet : bullets)
-        {
-            bullet.render(renderer);
-        }
+            for (auto&bullet:bullets)
+            {
+                bullet.render(renderer);
+            }
     }
 };
 
@@ -168,196 +157,97 @@ class EnemyTank
 public:
     int x,y;
     int dirX,dirY;
+    int moveDelay,shootDelay;
     SDL_Rect rect;
-    vector<Bullet>bullets;
-    int shootTimer;
-    int shootDelay;
     bool active;
+    vector<Bullet>bullets;
 
     EnemyTank(int startX,int startY)
     {
+        moveDelay=EnemymoveDelay;
+        shootDelay=EnemyshootDelay;
         x=startX;
         y=startY;
         rect={x,y,TILE_SIZE,TILE_SIZE};
-
-        // Chọn hướng di chuyển ban đầu ngẫu nhiên
-        int direction=rand()%4;
-        if (direction==0)
-        {
-            dirX=0;    // Lên
-            dirY=-1;
-        }
-        else if(direction==1)
-        {
-            dirX=1;    // Phải
-            dirY=0;
-        }
-        else if(direction==2)
-        {
-            dirX=0;    // Xuống
-            dirY=1;
-        }
-        else
-        {
-            dirX=-1;    // Trái
-            dirY=0;
-        }
-
-        shootTimer=0;
-        shootDelay=120; // 120 frames ~ 2 giây (với 60 FPS)
+        dirX=0;
+        dirY=1;
         active=true;
     }
 
-    void update(const vector<Wall>& walls, PlayerTank& player, vector<EnemyTank>& enemies)
+    void move(const vector<Wall>&walls)
     {
-        if (!active) return;
+        if(--moveDelay>0)return;
+        moveDelay=EnemymoveDelay;
+        int r=rand()%4;
+        if(r==0)//Up
+        {
+            this->dirX=0;
+            this->dirY=-5;
+        }
+        else if(r==1)//Down
+        {
+            this->dirX=0;
+            this->dirY=5;
+        }
+        else if(r==2)// Left
+        {
+            this->dirY=0;
+            this->dirX=-5;
+        }
+        else if(r==3)// Right
+        {
+            this->dirY=0;
+            this->dirX=5;
+        }
 
-        // Di chuyển
-        int speed=2; // Tốc độ di chuyển của tank địch
-        int newX=x+dirX*speed;
-        int newY=y+dirY*speed;
-
+        int newX=x+this->dirX;
+        int newY=y+this->dirY;
         SDL_Rect newRect={newX,newY,TILE_SIZE,TILE_SIZE};
-        bool collision=false;
-
-        // Kiểm tra va chạm với tường
         for(const auto&wall:walls)
         {
-            if (wall.active&&SDL_HasIntersection(&newRect, &wall.rect))
+            if(wall.active&&SDL_HasIntersection(&newRect,&wall.rect))
             {
-                collision=true;
-                break;
+                return;
             }
         }
-
-        // Kiểm tra va chạm với người chơi
-        if(SDL_HasIntersection(&newRect,&player.rect))
+        if(newX>=TILE_SIZE&&newX<=SCREEN_WIDTH-TILE_SIZE*2&&
+           newY>=TILE_SIZE&&newY<=SCREEN_HEIGHT-TILE_SIZE*2)
         {
-            collision=true;
-        }
-
-        // Kiểm tra va chạm với các xe tăng địch khác
-        for(const auto& enemy:enemies)
-        {
-            if (&enemy!=this&&enemy.active&&SDL_HasIntersection(&newRect,&enemy.rect))
-            {
-                collision=true;
-                break;
-            }
-        }
-
-        // Kiểm tra va chạm với biên màn hình
-        if(newX<TILE_SIZE||newX>SCREEN_WIDTH-TILE_SIZE*2||newY<TILE_SIZE||newY>SCREEN_HEIGHT-TILE_SIZE*2)
-        {
-            collision=true;
-        }
-
-        if(collision)
-        {
-            // Đổi hướng khi gặp vật cản
-            int direction=rand()%4;
-            if(direction==0)
-            {
-                dirX=0;    // Lên
-                dirY=-1;
-            }
-            else if(direction==1)
-            {
-                dirX=1;    // Phải
-                dirY=0;
-            }
-            else if(direction==2)
-            {
-                dirX=0;    // Xuống
-                dirY=1;
-            }
-            else
-            {
-                dirX=-1;    // Trái
-                dirY=0;
-            }
-        }
-        else
-        {
-            // Di chuyển nếu không có va chạm
             x=newX;
             y=newY;
             rect.x=x;
             rect.y=y;
         }
-
-        // Bắn đạn mỗi 2 giây
-        shootTimer++;
-        if (shootTimer>=shootDelay)
-        {
-            shoot();
-            shootTimer=0;
-        }
-
-        // Cập nhật đạn
-        updateBullets(walls,player);
     }
 
     void shoot()
     {
-        int bulletX=x+TILE_SIZE/2-BULLET_SIZE/2;
-        int bulletY=y+TILE_SIZE/2-BULLET_SIZE/2;
-        bullets.push_back(Bullet(bulletX, bulletY, dirX, dirY));
+        if(--shootDelay>0)return;
+        shootDelay=EnemyshootDelay;
+        bullets.push_back(Bullet(x+TILE_SIZE/2-BULLET_SIZE/2,y+TILE_SIZE/2-BULLET_SIZE/2,this->dirX,this->dirY));
     }
 
-    void updateBullets(const vector<Wall>& walls,PlayerTank& player)
+    void updateBullets()
     {
-        vector<Wall>wallscopy;
-        for (auto& bullet:bullets)
+        for (auto&bullet:bullets)
         {
-            if (bullet.active)
-            {
-                bullet.update();
-
-                // Kiểm tra va chạm với tường
-                for (auto& wall:wallscopy)
-                {
-                    if (wall.active&&SDL_HasIntersection(&bullet.rect, &wall.rect))
-                    {
-                        bullet.active=false;
-                        wall.active=false;
-                        break;
-                    }
-                }
-
-                // Kiểm tra va chạm với người chơi
-                if (bullet.active&&SDL_HasIntersection(&bullet.rect,&player.rect))
-                {
-                    bullet.active=false;
-                    // Có thể thêm logic khi người chơi bị trúng đạn
-                    // ví dụ: player.lives--;
-                }
-            }
+            bullet.move();
         }
-
-        // Xóa đạn không còn hoạt động
-        bullets.erase(remove_if(bullets.begin(),bullets.end(),[](Bullet& b)
-        {
-            return !b.active;
-        }), bullets.end());
+        bullets.erase(remove_if(bullets.begin(),bullets.end(),
+                                [](Bullet &b){return !b.active;}),bullets.end());
     }
 
-    void render(SDL_Renderer* renderer)
+    void render(SDL_Renderer *renderer)
     {
-        if(!active)return;
-
-        // Vẽ xe tăng địch màu xanh dương
-        SDL_SetRenderDrawColor(renderer,0,0,255,255);
+        SDL_SetRenderDrawColor(renderer,255,0,0,255);
         SDL_RenderFillRect(renderer,&rect);
-
-        // Vẽ đạn
-        for(auto& bullet:bullets)
+        for(auto&bullet:bullets)
         {
             bullet.render(renderer);
         }
     }
-};
 
+};
 class Game
 {
 public:
@@ -382,10 +272,27 @@ public:
 
     void spawnEnemies()
     {
-        // Tạo 3 xe tăng địch ở vị trí khác nhau
-        enemies.push_back(EnemyTank(2*TILE_SIZE,2*TILE_SIZE));
-        enemies.push_back(EnemyTank((MAP_WIDTH-3)*TILE_SIZE,2*TILE_SIZE));
-        enemies.push_back(EnemyTank((MAP_WIDTH/2)*TILE_SIZE,2*TILE_SIZE));
+        enemies.clear();
+        for(int i=0;i<EnemiesNum;++i)
+        {
+            int ex,ey;
+            bool validPosition=false;
+            while(!validPosition)
+            {
+                ex=(rand()%(MAP_WIDTH-2)+1)*TILE_SIZE;
+                ey=(rand()%(MAP_HEIGHT-2)+1)*TILE_SIZE;
+                validPosition=true;
+                for(const auto&wall:walls)
+                {
+                    if(wall.active&&wall.x==ex&&wall.y==ey)
+                    {
+                        validPosition=false;
+                        break;
+                    }
+                }
+            }
+            enemies.push_back(EnemyTank(ex,ey));
+        }
     }
 
     Game():player(((MAP_WIDTH-1)/2)*TILE_SIZE,(MAP_HEIGHT-2)*TILE_SIZE)
@@ -414,6 +321,82 @@ public:
 
     }
 
+    void update()
+    {
+        player.updateBullets();
+
+        for(auto&enemy:enemies)
+        {
+            enemy.move(walls);
+            enemy.updateBullets();
+            if (rand()%100<2)
+            {
+                enemy.shoot();
+            }
+        }
+
+        for(auto&enemy:enemies)
+        {
+            for(auto&bullet:enemy.bullets)
+            {
+                for(auto&wall:walls)
+                {
+                    if(wall.active&&SDL_HasIntersection(&bullet.rect,&wall.rect))
+                    {
+                        wall.active=false;
+                        bullet.active=false;
+                        break;
+                    }
+                }
+            }
+        }
+
+        for(auto&bullet:player.bullets)
+        {
+            for(auto&wall:walls)
+            {
+                if(wall.active&&SDL_HasIntersection(&bullet.rect,&wall.rect))
+                {
+                    wall.active=false;
+                    bullet.active=false;
+                    break;
+                }
+            }
+        }
+
+        for(auto&bullet:player.bullets)
+        {
+            for(auto&enemy:enemies)
+            {
+                if(enemy.active&&SDL_HasIntersection(&bullet.rect,&enemy.rect))
+                {
+                    enemy.active=false;
+                    bullet.active=false;
+                }
+            }
+        }
+
+        enemies.erase(remove_if(enemies.begin(),enemies.end(),
+                                [](EnemyTank &e){return !e.active;}),enemies.end());
+        if(enemies.empty())
+        {
+            running=false;
+        }
+
+        for(auto&enemy:enemies)
+        {
+            for(auto&bullet:enemy.bullets)
+            {
+                //Update
+                if(SDL_HasIntersection(&bullet.rect,&player.rect))
+                {
+                    running=false;
+                    return;
+                }
+            }
+        }
+    }
+
     void handleEvents()
     {
         SDL_Event event;
@@ -427,49 +410,11 @@ public:
             {
                 switch(event.key.keysym.sym)
                 {
-                case SDLK_UP:
-                    player.move(0,-5,walls);
-                    break;
-                case SDLK_DOWN:
-                    player.move(0,5,walls);
-                    break;
-                case SDLK_LEFT:
-                    player.move(-5,0,walls);
-                    break;
-                case SDLK_RIGHT:
-                    player.move(5,0,walls);
-                    break;
-                case SDLK_SPACE:
-                    player.shoot();
-                    break;
-                }
-            }
-        }
-    }
-
-    void update()
-    {
-        player.updateBullets(walls);
-
-        // Cập nhật các xe tăng địch
-        for (auto& enemy:enemies)
-        {
-            enemy.update(walls,player,enemies);
-        }
-
-        // Kiểm tra va chạm đạn người chơi với xe tăng địch
-        for (auto&bullet:player.bullets)
-        {
-            if (bullet.active)
-            {
-                for (auto&enemy:enemies)
-                {
-                    if(enemy.active&&SDL_HasIntersection(&bullet.rect,&enemy.rect))
-                    {
-                        bullet.active=false;
-                        enemy.active=false;
-                        break;
-                    }
+                    case SDLK_UP:player.move(0,-5,walls);break;
+                    case SDLK_DOWN:player.move(0,5,walls);break;
+                    case SDLK_LEFT:player.move(-5,0,walls);break;
+                    case SDLK_RIGHT:player.move(5,0,walls);break;
+                    case SDLK_SPACE:player.shoot();break;
                 }
             }
         }
@@ -485,7 +430,7 @@ public:
         {
             for(int j=1;j<MAP_WIDTH-1;++j)
             {
-                SDL_Rect tile={j*TILE_SIZE,i*TILE_SIZE,TILE_SIZE,TILE_SIZE};//Define tile rectangle
+                SDL_Rect tile={j*TILE_SIZE,i*TILE_SIZE,TILE_SIZE,TILE_SIZE}; //Define tile rectangle
                 SDL_RenderFillRect(renderer,&tile);//Fill the tile rectangle with the current draw color
             }
         }
@@ -496,13 +441,10 @@ public:
         }
 
         player.render(renderer);
-
-        // Vẽ các xe tăng địch
-        for(auto& enemy:enemies)
+        for(auto&enemy:enemies)
         {
             enemy.render(renderer);
         }
-
         SDL_RenderPresent(renderer);//Update the screen with the rendered content
     }
 
@@ -512,7 +454,6 @@ public:
         {
             handleEvents();
             update();
-            player.updateBullets(walls);
             render();
             SDL_Delay(16);
         }
