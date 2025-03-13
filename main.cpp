@@ -15,9 +15,9 @@ const int MAP_WIDTH=SCREEN_WIDTH/TILE_SIZE;
 const int MAP_HEIGHT=SCREEN_HEIGHT/TILE_SIZE;
 const int BULLET_SIZE=10;
 const int PlayersNum=1;
-const int EnemiesNum=3;
+const int EnemiesNum=4;
 const int EnemymoveDelay=15;
-const int EnemyshootDelay=1;
+const int EnemyshootDelay=3;
 
 class Wall
 {
@@ -255,7 +255,7 @@ public:
     SDL_Renderer *renderer;
     bool running;
     vector<Wall>walls;
-    PlayerTank player;
+    PlayerTank player=spawnPlayer();
     vector<EnemyTank>enemies;
 
     void generateWalls()
@@ -295,7 +295,12 @@ public:
         }
     }
 
-    Game():player(((MAP_WIDTH-1)/2)*TILE_SIZE,(MAP_HEIGHT-2)*TILE_SIZE)
+    PlayerTank spawnPlayer()
+    {
+        return PlayerTank(((MAP_WIDTH-1)/2)*TILE_SIZE,(MAP_HEIGHT-2)*TILE_SIZE);
+    }
+
+    Game()
     {
         bool running=true;
         if(SDL_Init(SDL_INIT_VIDEO)<0)
