@@ -14,9 +14,9 @@ const int TILE_SIZE=40;
 const int MAP_WIDTH=SCREEN_WIDTH/TILE_SIZE;
 const int MAP_HEIGHT=SCREEN_HEIGHT/TILE_SIZE;
 const int playerSpeed=4;
-const int bulletSpeed=5;
+const int bulletSpeed=4;
 const int playerShootDelay=60;
-const int enemySpeed=1;
+const int enemySpeed=2;
 const int BULLET_SIZE=10;
 const int EnemiesNum=2;
 const int EnemymoveDelay=5;
@@ -384,6 +384,7 @@ public:
     int x,y;
     int dirX,dirY;
     int moveDelay,shootDelay;
+    int directionTimer;
     SDL_Rect rect;
     bool active;
     vector<Bullet>bullets;
@@ -398,12 +399,11 @@ public:
         dirX=0;
         dirY=1;
         active=true;
+        directionTimer=0;
     }
 
-    void move(const vector<Wall>&walls)
+    void changeDirection()
     {
-        if(--moveDelay>0)return;
-        moveDelay=EnemymoveDelay;
         int r=rand()%4;
         if(r==0)//Up
         {
@@ -425,25 +425,47 @@ public:
             this->dirY=0;
             this->dirX=enemySpeed;
         }
+        directionTimer=0;
+    }
+
+    void move(const vector<Wall>&walls)
+    {
+        if(--moveDelay>0)return;
+        moveDelay=EnemymoveDelay;
+        directionTimer++;
+
+        if(directionTimer>=180/EnemymoveDelay)
+        {
+            changeDirection();
+        }
 
         int newX=x+this->dirX;
         int newY=y+this->dirY;
         SDL_Rect newRect={newX,newY,TILE_SIZE,TILE_SIZE};
+
+        bool wallCollision =false;
         for(const auto&wall:walls)
         {
             if(wall.active&&SDL_HasIntersection(&newRect,&wall.rect))
             {
-                return;
+                wallCollision=true;
+                break;
             }
         }
-        if(newX>=TILE_SIZE&&newX<=SCREEN_WIDTH-TILE_SIZE*2&&
-           newY>=TILE_SIZE&&newY<=SCREEN_HEIGHT-TILE_SIZE*2)
+
+        bool boundaryCollision=newX<TILE_SIZE||newX>SCREEN_WIDTH-TILE_SIZE*2||
+                               newY<TILE_SIZE||newY>SCREEN_HEIGHT-TILE_SIZE*2;
+
+        if(wallCollision||boundaryCollision)
         {
-            x=newX;
-            y=newY;
-            rect.x=x;
-            rect.y=y;
+            changeDirection();
+            return;
         }
+
+        x=newX;
+        y=newY;
+        rect.x=x;
+        rect.y=y;
     }
 
     void shoot()
