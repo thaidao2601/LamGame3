@@ -13,12 +13,15 @@ const int SCREEN_HEIGHT=600;
 const int TILE_SIZE=40;
 const int MAP_WIDTH=SCREEN_WIDTH/TILE_SIZE;
 const int MAP_HEIGHT=SCREEN_HEIGHT/TILE_SIZE;
+const int playerSpeed=4;
+const int bulletSpeed=5;
+const int playerShootDelay=60;
+const int enemySpeed=1;
 const int BULLET_SIZE=10;
-const int EnemiesNum=4;
+const int EnemiesNum=2;
 const int EnemymoveDelay=5;
 const int EnemyshootDelay=3;
 
-//Menu class for game start screen
 class Menu
 {
 public:
@@ -29,6 +32,7 @@ public:
     int playerNum;
 
     SDL_Rect onePlayerButton;
+    SDL_Rect twoPlayerButton;
     SDL_Rect exitButton;
 
     Menu()
@@ -44,7 +48,7 @@ public:
             return;
         }
 
-        if(TTF_Init() < 0)
+        if(TTF_Init()<0)
         {
             std::cerr<<"TTF could not initialize! TTF_Error: "<<TTF_GetError()<<std::endl;
             running=false;
@@ -71,10 +75,11 @@ public:
         int buttonWidth=300;
         int buttonHeight=60;
         int buttonGap=30;
-        int startY=(SCREEN_HEIGHT/2)-buttonHeight-(buttonGap/2);
+        int startY=(SCREEN_HEIGHT/2)-buttonHeight-(buttonGap/2)-buttonHeight/2;
 
         onePlayerButton={(SCREEN_WIDTH-buttonWidth)/2,startY,buttonWidth,buttonHeight};
-        exitButton={(SCREEN_WIDTH-buttonWidth)/2,startY+buttonHeight+buttonGap,buttonWidth,buttonHeight};
+        twoPlayerButton={(SCREEN_WIDTH-buttonWidth)/2,startY+buttonHeight+buttonGap,buttonWidth,buttonHeight};
+        exitButton={(SCREEN_WIDTH-buttonWidth)/2,startY+2*(buttonHeight+buttonGap),buttonWidth,buttonHeight};
     }
 
     void renderText(const char *text,SDL_Rect rect,SDL_Color color)
@@ -146,6 +151,12 @@ public:
         SDL_SetRenderDrawColor(renderer,255,255,255,255);//White border
         SDL_RenderDrawRect(renderer,&onePlayerButton);
 
+        //Draw "Two Player" button
+        SDL_SetRenderDrawColor(renderer,100,255,100,255);//Green button
+        SDL_RenderFillRect(renderer,&twoPlayerButton);
+        SDL_SetRenderDrawColor(renderer,255,255,255,255);//White border
+        SDL_RenderDrawRect(renderer,&twoPlayerButton);
+
         //Draw "Exit" button
         SDL_SetRenderDrawColor(renderer,255,100,100,255);//Red button
         SDL_RenderFillRect(renderer,&exitButton);
@@ -155,6 +166,7 @@ public:
         //Draw button text
         SDL_Color textColor={255,255,255,255};//White text
         renderText("Một người chơi",onePlayerButton,textColor);
+        renderText("Hai người chơi",twoPlayerButton,textColor);
         renderText("Thoát",exitButton,textColor);
 
         SDL_RenderPresent(renderer);
@@ -180,6 +192,14 @@ public:
                 {
                     startGame=true;
                     running=false;
+                    playerNum=1;
+                }
+                else if(mouseX>=twoPlayerButton.x&&mouseX<=(twoPlayerButton.x+twoPlayerButton.w)&&
+                        mouseY>=twoPlayerButton.y&&mouseY<=(twoPlayerButton.y+twoPlayerButton.h))
+                {
+                    startGame=true;
+                    running=false;
+                    playerNum=2;
                 }
                 //Check if Exit button was clicked
                 else if(mouseX>=exitButton.x&&mouseX<=(exitButton.x+exitButton.w)&&
@@ -252,8 +272,8 @@ public:
 
     void move()
     {
-        x+=dx;
-        y+=dy;
+        x+=dx*bulletSpeed;
+        y+=dy*bulletSpeed;
         rect.x=x;
         rect.y=y;
         if(x<TILE_SIZE||x>SCREEN_WIDTH-TILE_SIZE||y<TILE_SIZE||y>SCREEN_HEIGHT-TILE_SIZE)
@@ -280,25 +300,29 @@ public:
     int dirX,dirY;
     SDL_Rect rect;
     vector<Bullet>bullets;
+    bool active;
+    int shootDelay;
 
     PlayerTank(int startX,int startY)
     {
         x=startX;
         y=startY;
-        rect= {x,y,TILE_SIZE,TILE_SIZE};
+        rect={x,y,TILE_SIZE,TILE_SIZE};
         dirX=0;
         dirY=-1;//Default direction up
+        active=true;
+        shootDelay=playerShootDelay;
     }
 
     void move(int dx,int dy,const vector<Wall>&walls)
     {
-        int newX=x+dx;
-        int newY=y+dy;
+        int newX=x+dx*playerSpeed;
+        int newY=y+dy*playerSpeed;
         this->dirX=dx;
         this->dirY=dy;
 
-        SDL_Rect newRect= {newX,newY,TILE_SIZE,TILE_SIZE};
-        for(int i=0; i<int(walls.size()); i++)
+        SDL_Rect newRect={newX,newY,TILE_SIZE,TILE_SIZE};
+        for(int i=0;i<int(walls.size());i++)
         {
             if (walls[i].active&&SDL_HasIntersection(&newRect,&walls[i].rect))
             {
@@ -317,11 +341,20 @@ public:
 
     void shoot()
     {
-        bullets.push_back(Bullet(x+TILE_SIZE/2-BULLET_SIZE/2,y+TILE_SIZE/2-BULLET_SIZE/2,this->dirX,this->dirY));
+        if(shootDelay<=0)
+        {
+            bullets.push_back(Bullet(x+TILE_SIZE/2-BULLET_SIZE/2,y+TILE_SIZE/2-BULLET_SIZE/2,this->dirX,this->dirY));
+            shootDelay=playerShootDelay;
+        }
     }
 
     void updateBullets()
     {
+        if(shootDelay>0)
+        {
+            shootDelay--;
+        }
+
         for(auto&bullet:bullets)
         {
             bullet.move();
@@ -375,22 +408,22 @@ public:
         if(r==0)//Up
         {
             this->dirX=0;
-            this->dirY=-5;
+            this->dirY=-enemySpeed;
         }
         else if(r==1)//Down
         {
             this->dirX=0;
-            this->dirY=5;
+            this->dirY=enemySpeed;
         }
         else if(r==2)//Left
         {
             this->dirY=0;
-            this->dirX=-5;
+            this->dirX=-enemySpeed;
         }
         else if(r==3)//Right
         {
             this->dirY=0;
-            this->dirX=5;
+            this->dirX=enemySpeed;
         }
 
         int newX=x+this->dirX;
@@ -452,7 +485,8 @@ public:
     bool running;
     vector<Wall>walls;
     PlayerTank player1=spawnPlayer1();
-    //PlayerTank player2;
+    PlayerTank player2=spawnPlayer2();
+    bool twoPlayerMode=false;
     vector<EnemyTank>enemies;
 
     void generateWalls()
@@ -470,7 +504,7 @@ public:
     void spawnEnemies()
     {
         enemies.clear();
-        for(int i=0; i<EnemiesNum; ++i)
+        for(int i=0;i<EnemiesNum;++i)
         {
             int ex,ey;
             bool validPosition=false;
@@ -494,11 +528,17 @@ public:
 
     PlayerTank spawnPlayer1()
     {
+        return PlayerTank(((MAP_WIDTH-1)/2+1)*TILE_SIZE,(MAP_HEIGHT-2)*TILE_SIZE);
+    }
+
+    PlayerTank spawnPlayer2()
+    {
         return PlayerTank(((MAP_WIDTH-1)/2)*TILE_SIZE,(MAP_HEIGHT-2)*TILE_SIZE);
     }
 
-    Game()
+    Game(bool twoPlayer)
     {
+        twoPlayerMode=twoPlayer;
         running=true;
         if(SDL_Init(SDL_INIT_VIDEO)<0)
         {
@@ -526,6 +566,7 @@ public:
     void update()
     {
         player1.updateBullets();
+        if(twoPlayerMode)player2.updateBullets();
 
         for(auto&enemy:enemies)
         {
@@ -574,6 +615,52 @@ public:
                 {
                     enemy.active=false;
                     bullet.active=false;
+                    break;
+                }
+            }
+        }
+
+        if(twoPlayerMode)
+        {
+            for(auto &bullet:player2.bullets)
+            {
+                for(auto &wall:walls)
+                {
+                    if(wall.active&&SDL_HasIntersection(&bullet.rect,&wall.rect))
+                    {
+                        wall.active=false;
+                        bullet.active=false;
+                        break;
+                    }
+                }
+            }
+
+            for(auto &bullet:player2.bullets)
+            {
+                for(auto &enemy:enemies)
+                {
+                    if(enemy.active&&SDL_HasIntersection(&bullet.rect,&enemy.rect))
+                    {
+                        enemy.active=false;
+                        bullet.active=false;
+                        break;
+                    }
+                }
+            }
+        }
+
+        if(twoPlayerMode)
+        {
+            for(auto &enemy:enemies)
+            {
+                for(auto &bullet:enemy.bullets)
+                {
+                    if(SDL_HasIntersection(&bullet.rect,&player2.rect))
+                    {
+                        player2.active=false;
+                        bullet.active=false;
+                        break;
+                    }
                 }
             }
         }
@@ -593,17 +680,22 @@ public:
         {
             for(auto&bullet:enemy.bullets)
             {
-                //Update
                 if(SDL_HasIntersection(&bullet.rect,&player1.rect))
                 {
-                    running=false;
-                    return;
+                        player1.active=false;
+                        bullet.active=false;
+                        break;
                 }
             }
         }
+
+        if(!player1.active&&(!twoPlayerMode||!player2.active))
+        {
+            running = false;  // Dừng game khi player1 không hoạt động và (không phải chế độ 2 người chơi hoặc player2 không hoạt động)
+        }
     }
 
-    void handleEvents1()
+    void handleEvents()
     {
         SDL_Event event;
         while(SDL_PollEvent(&event))
@@ -612,31 +704,28 @@ public:
             {
                 running=false;
             }
-            else if(event.type==SDL_KEYDOWN)
-            {
-                switch(event.key.keysym.sym)
-                {
-                case SDLK_UP:
-                    player1.move(0,-5,walls);
-                    break;
-                case SDLK_DOWN:
-                    player1.move(0,5,walls);
-                    break;
-                case SDLK_LEFT:
-                    player1.move(-5,0,walls);
-                    break;
-                case SDLK_RIGHT:
-                    player1.move(5,0,walls);
-                    break;
-                case SDLK_SPACE:
-                    player1.shoot();
-                    break;
-                }
-            }
+        }
+
+        //Kiểm tra trạng thái phím hiện tại(không phụ thuộc vào hàng đợi sự kiện)
+        const Uint8 *keystate=SDL_GetKeyboardState(NULL);
+
+        //Xử lý di chuyển cho người chơi 1(arrow keys+SPACE)
+        if(keystate[SDL_SCANCODE_UP])player1.move(0,-1,walls);
+        if(keystate[SDL_SCANCODE_DOWN])player1.move(0,1,walls);
+        if(keystate[SDL_SCANCODE_LEFT])player1.move(-1,0,walls);
+        if(keystate[SDL_SCANCODE_RIGHT])player1.move(1,0,walls);
+        if(keystate[SDL_SCANCODE_SPACE])player1.shoot();
+
+        // Xử lý di chuyển cho người chơi 2(WASD+K)
+        if(twoPlayerMode && player2.active)
+        {
+            if(keystate[SDL_SCANCODE_W])player2.move(0,-1,walls);
+            if(keystate[SDL_SCANCODE_S])player2.move(0,1,walls);
+            if(keystate[SDL_SCANCODE_A])player2.move(-1,0,walls);
+            if(keystate[SDL_SCANCODE_D])player2.move(1,0,walls);
+            if(keystate[SDL_SCANCODE_K])player2.shoot();
         }
     }
-
-    //void handleEvents2()
 
     void render()
     {
@@ -658,7 +747,8 @@ public:
             walls[i].render(renderer);
         }
 
-        player1.render(renderer);
+        if(player1.active)player1.render(renderer);
+        if(twoPlayerMode&&player2.active)player2.render(renderer);
 
         for(auto&enemy:enemies)
         {
@@ -674,7 +764,7 @@ public:
         {
             update();
             render();
-            handleEvents1();
+            handleEvents();
             SDL_Delay(16);
         }
     }
@@ -704,7 +794,7 @@ int main(int argc,char *argv[])
 
     if(menu.startGame)
     {
-        Game game;
+        Game game(menu.playerNum==2);
         if(game.running)
         {
             game.run();
