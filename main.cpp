@@ -1,5 +1,6 @@
 #include<iostream>
 #include<vector>
+#include<string>
 #include<algorithm>
 #include<SDL_image.h>
 #include<SDL_ttf.h>
@@ -8,8 +9,8 @@
 
 using namespace std;
 
-const int SCREEN_WIDTH=800;
-const int SCREEN_HEIGHT=600;
+const int SCREEN_WIDTH=720;
+const int SCREEN_HEIGHT=720;
 const int TILE_SIZE=40;
 const int MAP_WIDTH=SCREEN_WIDTH/TILE_SIZE;
 const int MAP_HEIGHT=SCREEN_HEIGHT/TILE_SIZE;
@@ -84,11 +85,11 @@ public:
 
     void renderText(const char *text,SDL_Rect rect,SDL_Color color)
     {
-        TTF_Font *font=TTF_OpenFont("arial.ttf",24);
+        TTF_Font *font=TTF_OpenFont("timesbd.ttf",24);
         if(!font)
         {
             //Fallback if font file not found
-            font=TTF_OpenFont("arial.ttf",24);
+            font=TTF_OpenFont("timesbd.ttf",24);
         }
 
         if(!font)
@@ -124,11 +125,11 @@ public:
 
         //Draw title
         SDL_Color titleColor={255,255,0,255};//Yellow
-        TTF_Font* titleFont=TTF_OpenFont("arial.ttf",48);
+        TTF_Font* titleFont=TTF_OpenFont("timesbd.ttf",48);
         if(!titleFont)
         {
             //Fallback if font file not found
-            titleFont=TTF_OpenFont("arial.ttf",48);
+            titleFont=TTF_OpenFont("timesbd.ttf",48);
         }
 
         if(titleFont)
@@ -367,9 +368,10 @@ public:
         }), bullets.end());
     }
 
-    void render(SDL_Renderer *renderer)
+    void render(SDL_Renderer *renderer,int id)
     {
-        SDL_SetRenderDrawColor(renderer,255,255,0,255);
+        if(id==1)SDL_SetRenderDrawColor(renderer,0,250,250,255);
+        else SDL_SetRenderDrawColor(renderer,0,17,250,255);
         SDL_RenderFillRect(renderer,&rect);
         for (auto&bullet:bullets)
         {
@@ -504,6 +506,7 @@ class Game
 public:
     SDL_Window *window;
     SDL_Renderer *renderer;
+    SDL_Texture *grassTexture=nullptr;
     bool running;
     vector<Wall>walls;
     PlayerTank player1=spawnPlayer1();
@@ -578,6 +581,11 @@ public:
         {
             std::cerr<<"Renderer could not be created! SDL_Error: "<<SDL_GetError()<<std::endl;
             running=false;
+        }
+        grassTexture=IMG_LoadTexture(renderer,"grass_background.png");
+        if (!grassTexture)
+        {
+            std::cerr<<"Failed to load grass background! IMG_Error: "<<IMG_GetError()<<std::endl;
         }
 
         generateWalls();
@@ -751,33 +759,50 @@ public:
 
     void render()
     {
-        SDL_SetRenderDrawColor(renderer,128,128,128,255);//Set draw color to gray for boundaries
-        SDL_RenderClear(renderer);//Clear the renderer with the set color
+        SDL_SetRenderDrawColor(renderer,128,128,128,255);
+        SDL_RenderClear(renderer);
 
-        SDL_SetRenderDrawColor(renderer,0,0,0,255);//Set draw color to black for tiles
-        for(int i=1;i<MAP_HEIGHT-1;++i)
+        //Draw the grass background
+        if(grassTexture)
         {
-            for(int j=1;j<MAP_WIDTH-1;++j)
-            {
-                SDL_Rect tile={j*TILE_SIZE,i*TILE_SIZE,TILE_SIZE,TILE_SIZE};//Define tile rectangle
-                SDL_RenderFillRect(renderer,&tile);//Fill the tile rectangle with the current draw color
-            }
+            //Draw the grass background only in the playable area
+            SDL_Rect playArea={TILE_SIZE,TILE_SIZE,SCREEN_WIDTH-2*TILE_SIZE,SCREEN_HEIGHT-2*TILE_SIZE};
+            SDL_RenderCopy(renderer,grassTexture,NULL,&playArea);
         }
+
+        //Draw the boundary(gray border)
+        SDL_SetRenderDrawColor(renderer,128,128,128,255);
+
+        //Top boundary
+        SDL_Rect topBoundary={0,0,SCREEN_WIDTH,TILE_SIZE};
+        SDL_RenderFillRect(renderer,&topBoundary);
+
+        //Bottom boundary
+        SDL_Rect bottomBoundary={0,SCREEN_HEIGHT-TILE_SIZE,SCREEN_WIDTH,TILE_SIZE};
+        SDL_RenderFillRect(renderer,&bottomBoundary);
+
+        //Left boundary
+        SDL_Rect leftBoundary={0,0,TILE_SIZE,SCREEN_HEIGHT};
+        SDL_RenderFillRect(renderer,&leftBoundary);
+
+        //Right boundary
+        SDL_Rect rightBoundary={SCREEN_WIDTH-TILE_SIZE,0,TILE_SIZE,SCREEN_HEIGHT};
+        SDL_RenderFillRect(renderer,&rightBoundary);
 
         for(int i=0;i<int(walls.size());++i)
         {
             walls[i].render(renderer);
         }
 
-        if(player1.active)player1.render(renderer);
-        if(twoPlayerMode&&player2.active)player2.render(renderer);
+        if(player1.active)player1.render(renderer,1);
+        if(twoPlayerMode&&player2.active)player2.render(renderer,2);
 
         for(auto&enemy:enemies)
         {
             enemy.render(renderer);
         }
 
-        SDL_RenderPresent(renderer);//Update the screen with the rendered content
+        SDL_RenderPresent(renderer);
     }
 
     void run()
@@ -793,6 +818,10 @@ public:
 
     ~Game()
     {
+        if(grassTexture)
+        {
+            SDL_DestroyTexture(grassTexture);
+        }
         SDL_DestroyRenderer(renderer);
         SDL_DestroyWindow(window);
         SDL_Quit();
@@ -806,6 +835,14 @@ int main(int argc,char *argv[])
     {
         std::cerr<<"SDL_ttf could not initialize! SDL_ttf Error: "<<TTF_GetError()<<std::endl;
         return 1;
+    }
+
+    //Initialize SDL_image for loading PNG
+    int imgFlags=IMG_INIT_PNG;
+    if(!(IMG_Init(imgFlags)&imgFlags))
+    {
+        std::cerr<<"SDL_image could not initialize! SDL_image Error: "<<IMG_GetError()<<std::endl;
+        //Continue even if image loading fails
     }
 
     Menu menu;
@@ -823,6 +860,7 @@ int main(int argc,char *argv[])
         }
     }
 
+    IMG_Quit();
     TTF_Quit();
     return 0;
 }
