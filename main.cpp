@@ -28,6 +28,7 @@ class Menu
 public:
     SDL_Window *window;
     SDL_Renderer *renderer;
+    SDL_Texture *backgroundTexture;
     bool running;
     bool startGame;
     int playerNum;
@@ -70,6 +71,12 @@ public:
             std::cerr<<"Renderer could not be created! SDL_Error: "<<SDL_GetError()<<std::endl;
             running=false;
             return;
+        }
+
+        backgroundTexture=IMG_LoadTexture(renderer,"menu_background.png");
+        if(!backgroundTexture)
+        {
+            std::cerr<<"Failed to load menu background! IMG_Error: "<<IMG_GetError()<<std::endl;
         }
 
         //Setup menu buttons (centered)
@@ -119,10 +126,16 @@ public:
 
     void render()
     {
-        //Clear screen with black background
-        SDL_SetRenderDrawColor(renderer,0,0,0,255);
-        SDL_RenderClear(renderer);
-
+        if(backgroundTexture)
+        {
+            SDL_RenderCopy(renderer,backgroundTexture,NULL,NULL);
+        }
+        else
+        {
+            //Fall back to black background if image couldn't be loaded
+            SDL_SetRenderDrawColor(renderer,0,0,0,255);
+            SDL_RenderClear(renderer);
+        }
         //Draw title
         SDL_Color titleColor={255,255,0,255};//Yellow
         TTF_Font* titleFont=TTF_OpenFont("timesbd.ttf",48);
@@ -224,6 +237,10 @@ public:
 
     ~Menu()
     {
+        if(backgroundTexture)
+        {
+            SDL_DestroyTexture(backgroundTexture);
+        }
         SDL_DestroyRenderer(renderer);
         SDL_DestroyWindow(window);
     }
