@@ -2,6 +2,7 @@
 #include<vector>
 #include<string>
 #include<algorithm>
+#include<ctime>
 #include<SDL_image.h>
 #include<SDL_ttf.h>
 #include<SDL_mixer.h>
@@ -16,7 +17,7 @@ const int MAP_WIDTH=SCREEN_WIDTH/TILE_SIZE;
 const int MAP_HEIGHT=SCREEN_HEIGHT/TILE_SIZE;
 const int playerSpeed=4;
 const int bulletSpeed=4;
-const int playerShootDelay=60;
+const int playerShootDelay=30;
 const int enemySpeed=2;
 const int BULLET_SIZE=10;
 const int EnemiesNum=3;
@@ -24,22 +25,24 @@ const int EnemymoveDelay=5;
 const int EnemyshootDelay=3;
 const vector<vector<int>>Map=
 {
-    {0,0,0,1,0,0,0,1,1,0,0,0,1,0,0,0},
-    {0,1,1,0,1,1,0,1,1,0,1,1,0,1,1,0},
-    {0,1,0,0,0,1,0,0,0,0,0,1,0,0,1,0},
-    {1,1,1,0,1,1,1,0,0,0,1,1,1,0,1,1},
-    {0,0,0,0,1,0,0,1,1,0,0,1,0,0,0,0},
-    {0,1,1,0,1,1,0,1,1,0,1,1,0,1,1,0},
-    {0,0,0,1,0,0,0,0,0,0,0,0,1,0,0,0},
-    {1,1,0,0,1,1,1,0,0,0,1,1,1,0,0,1},
-    {1,1,0,0,1,1,1,0,0,0,1,1,1,0,0,1},
-    {0,0,0,1,0,0,0,0,0,0,0,0,1,0,0,0},
-    {0,1,1,0,1,1,0,1,1,0,1,1,0,1,1,0},
-    {0,0,0,0,1,0,0,1,1,0,0,1,0,0,0,0},
-    {1,1,1,0,1,1,1,0,0,0,1,1,1,0,1,1},
-    {0,1,0,0,0,1,0,0,0,0,0,1,0,0,1,0},
-    {0,1,1,0,1,1,0,1,1,0,1,1,0,1,1,0},
-    {0,0,0,1,0,0,0,1,1,0,0,0,1,0,0,0}
+    {0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0},
+    {0,0,0,0,1,0,0,0,1,1,0,0,0,1,0,0,0,0},
+    {0,0,1,1,0,1,1,0,1,1,0,1,1,0,1,1,0,0},
+    {0,0,1,0,0,0,1,0,0,0,0,0,1,0,0,1,0,0},
+    {0,1,1,1,0,1,1,1,0,0,0,1,1,1,0,1,1,0},
+    {0,0,0,0,0,1,0,0,1,1,0,0,1,0,0,0,0,0},
+    {0,0,1,1,0,1,1,0,1,1,0,1,1,0,1,1,0,0},
+    {0,0,0,0,1,0,0,0,0,0,0,0,0,1,0,0,0,0},
+    {0,1,1,0,0,1,1,1,0,0,0,1,1,1,0,0,1,0},
+    {0,1,1,0,0,1,1,1,0,0,0,1,1,1,0,0,1,0},
+    {0,0,0,0,1,0,0,0,0,0,0,0,0,1,0,0,0,0},
+    {0,0,1,1,0,1,1,0,1,1,0,1,1,0,1,1,0,0},
+    {0,0,0,0,0,1,0,0,1,1,0,0,1,0,0,0,0,0},
+    {0,1,1,1,0,1,1,1,0,0,0,1,1,1,0,1,1,0},
+    {0,0,1,0,0,0,1,0,0,0,0,0,1,0,0,1,0,0},
+    {0,0,1,1,0,1,1,0,1,1,0,1,1,0,1,1,0,0},
+    {0,0,0,0,1,0,0,0,0,0,0,0,0,1,0,0,0,0},
+    {0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0}
 };
 
 
@@ -544,6 +547,8 @@ public:
     SDL_Window *window;
     SDL_Renderer *renderer;
     SDL_Texture *grassTexture=nullptr;
+    SDL_Texture *brickTexture=nullptr;
+    SDL_Texture *stoneTexture=nullptr;
     bool running;
     vector<Wall>walls;
     PlayerTank player1=spawnPlayer1();
@@ -553,9 +558,9 @@ public:
 
     void generateWalls()
     {
-        for(int i=1;i<MAP_HEIGHT-2;i++)
+        for(int i=1;i<MAP_HEIGHT-1;i++)
         {
-            for(int j=1;j<MAP_WIDTH-2;j++)
+            for(int j=1;j<MAP_WIDTH-1;j++)
             {
                 if(Map[i][j]==1)
                 {
@@ -622,10 +627,20 @@ public:
             std::cerr<<"Renderer could not be created! SDL_Error: "<<SDL_GetError()<<std::endl;
             running=false;
         }
-        grassTexture=IMG_LoadTexture(renderer,"grass_background.png");
-        if (!grassTexture)
+        grassTexture=IMG_LoadTexture(renderer,"grass_background2.png");
+        if(!grassTexture)
         {
             std::cerr<<"Failed to load grass background! IMG_Error: "<<IMG_GetError()<<std::endl;
+        }
+        brickTexture=IMG_LoadTexture(renderer,"brick.jpg");
+        if(!brickTexture)
+        {
+            std::cerr<<"Failed to load brick texture! IMG_Error: "<<IMG_GetError()<<std::endl;
+        }
+        stoneTexture=IMG_LoadTexture(renderer,"stone.jpg");
+        if(!stoneTexture)
+        {
+            std::cerr<<"Failed to load stone texture! IMG_Error: "<<IMG_GetError()<<std::endl;
         }
 
         generateWalls();
@@ -761,7 +776,7 @@ public:
 
         if(!player1.active&&(!twoPlayerMode||!player2.active))
         {
-            running = false;  // Dừng game khi player1 không hoạt động và (không phải chế độ 2 người chơi hoặc player2 không hoạt động)
+            running = false;//Dừng game khi player1 không hoạt động và (không phải chế độ 2 người chơi hoặc player2 không hoạt động)
         }
     }
 
@@ -797,6 +812,7 @@ public:
         }
     }
 
+    //Update the render method to use textures
     void render()
     {
         SDL_SetRenderDrawColor(renderer,128,128,128,255);
@@ -810,28 +826,62 @@ public:
             SDL_RenderCopy(renderer,grassTexture,NULL,&playArea);
         }
 
-        //Draw the boundary(gray border)
-        SDL_SetRenderDrawColor(renderer,128,128,128,255);
+        //Draw the boundary using stone texture
+        if(stoneTexture)
+        {
+            //Top boundary
+            SDL_Rect topBoundary={0,0,SCREEN_WIDTH,TILE_SIZE};
+            SDL_RenderCopy(renderer, stoneTexture,NULL,&topBoundary);
 
-        //Top boundary
-        SDL_Rect topBoundary={0,0,SCREEN_WIDTH,TILE_SIZE};
-        SDL_RenderFillRect(renderer,&topBoundary);
+            //Bottom boundary
+            SDL_Rect bottomBoundary={0,SCREEN_HEIGHT-TILE_SIZE,SCREEN_WIDTH,TILE_SIZE};
+            SDL_RenderCopy(renderer,stoneTexture,NULL,&bottomBoundary);
 
-        //Bottom boundary
-        SDL_Rect bottomBoundary={0,SCREEN_HEIGHT-TILE_SIZE,SCREEN_WIDTH,TILE_SIZE};
-        SDL_RenderFillRect(renderer,&bottomBoundary);
+            //Left boundary
+            SDL_Rect leftBoundary={0,0,TILE_SIZE,SCREEN_HEIGHT};
+            SDL_RenderCopy(renderer,stoneTexture,NULL,&leftBoundary);
 
-        //Left boundary
-        SDL_Rect leftBoundary={0,0,TILE_SIZE,SCREEN_HEIGHT};
-        SDL_RenderFillRect(renderer,&leftBoundary);
+            //Right boundary
+            SDL_Rect rightBoundary={SCREEN_WIDTH-TILE_SIZE,0,TILE_SIZE,SCREEN_HEIGHT};
+            SDL_RenderCopy(renderer,stoneTexture,NULL,&rightBoundary);
+        }
+        else
+        {
+            //Fallback to drawing colored rectangles if texture loading failed
+            SDL_SetRenderDrawColor(renderer,128,128,128,255);
 
-        //Right boundary
-        SDL_Rect rightBoundary={SCREEN_WIDTH-TILE_SIZE,0,TILE_SIZE,SCREEN_HEIGHT};
-        SDL_RenderFillRect(renderer,&rightBoundary);
+            //Top boundary
+            SDL_Rect topBoundary={0,0,SCREEN_WIDTH,TILE_SIZE};
+            SDL_RenderFillRect(renderer,&topBoundary);
 
+            //Bottom boundary
+            SDL_Rect bottomBoundary={0,SCREEN_HEIGHT-TILE_SIZE,SCREEN_WIDTH,TILE_SIZE};
+            SDL_RenderFillRect(renderer,&bottomBoundary);
+
+            //Left boundary
+            SDL_Rect leftBoundary={0,0,TILE_SIZE,SCREEN_HEIGHT};
+            SDL_RenderFillRect(renderer,&leftBoundary);
+
+            //Right boundary
+            SDL_Rect rightBoundary={SCREEN_WIDTH-TILE_SIZE,0,TILE_SIZE,SCREEN_HEIGHT};
+            SDL_RenderFillRect(renderer,&rightBoundary);
+        }
+
+        //Draw walls with brick texture instead of solid color
         for(int i=0;i<int(walls.size());++i)
         {
-            walls[i].render(renderer);
+            if(walls[i].active)
+            {
+                if(brickTexture)
+                {
+                    SDL_RenderCopy(renderer,brickTexture,NULL,&walls[i].rect);
+                }
+                else
+                {
+                    //Fallback to drawing colored rectangles if texture loading failed
+                    walls[i].render(renderer);
+                }
+            }
         }
 
         if(player1.active)player1.render(renderer,1);
@@ -862,6 +912,14 @@ public:
         {
             SDL_DestroyTexture(grassTexture);
         }
+        if(brickTexture)
+        {
+            SDL_DestroyTexture(brickTexture);
+        }
+        if(stoneTexture)
+        {
+            SDL_DestroyTexture(stoneTexture);
+        }
         SDL_DestroyRenderer(renderer);
         SDL_DestroyWindow(window);
         SDL_Quit();
@@ -870,6 +928,7 @@ public:
 
 int main(int argc,char *argv[])
 {
+    srand(time(nullptr));
     //Initialize SDL_ttf for menu text rendering
     if(TTF_Init()<0)
     {
