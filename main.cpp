@@ -19,9 +19,29 @@ const int bulletSpeed=4;
 const int playerShootDelay=60;
 const int enemySpeed=2;
 const int BULLET_SIZE=10;
-const int EnemiesNum=2;
+const int EnemiesNum=3;
 const int EnemymoveDelay=5;
 const int EnemyshootDelay=3;
+const vector<vector<int>>Map=
+{
+    {0,0,0,1,0,0,0,1,1,0,0,0,1,0,0,0},
+    {0,1,1,0,1,1,0,1,1,0,1,1,0,1,1,0},
+    {0,1,0,0,0,1,0,0,0,0,0,1,0,0,1,0},
+    {1,1,1,0,1,1,1,0,0,0,1,1,1,0,1,1},
+    {0,0,0,0,1,0,0,1,1,0,0,1,0,0,0,0},
+    {0,1,1,0,1,1,0,1,1,0,1,1,0,1,1,0},
+    {0,0,0,1,0,0,0,0,0,0,0,0,1,0,0,0},
+    {1,1,0,0,1,1,1,0,0,0,1,1,1,0,0,1},
+    {1,1,0,0,1,1,1,0,0,0,1,1,1,0,0,1},
+    {0,0,0,1,0,0,0,0,0,0,0,0,1,0,0,0},
+    {0,1,1,0,1,1,0,1,1,0,1,1,0,1,1,0},
+    {0,0,0,0,1,0,0,1,1,0,0,1,0,0,0,0},
+    {1,1,1,0,1,1,1,0,0,0,1,1,1,0,1,1},
+    {0,1,0,0,0,1,0,0,0,0,0,1,0,0,1,0},
+    {0,1,1,0,1,1,0,1,1,0,1,1,0,1,1,0},
+    {0,0,0,1,0,0,0,1,1,0,0,0,1,0,0,0}
+};
+
 
 class Menu
 {
@@ -533,12 +553,15 @@ public:
 
     void generateWalls()
     {
-        for (int i=3;i<MAP_HEIGHT-3;i+=2)
+        for(int i=1;i<MAP_HEIGHT-2;i++)
         {
-            for(int j=3;j<MAP_WIDTH-3;j+=2)
+            for(int j=1;j<MAP_WIDTH-2;j++)
             {
-                Wall w=Wall(j*TILE_SIZE,i*TILE_SIZE);
-                walls.push_back(w);
+                if(Map[i][j]==1)
+                {
+                    Wall w=Wall(j*TILE_SIZE,i*TILE_SIZE);
+                    walls.push_back(w);
+                }
             }
         }
     }
