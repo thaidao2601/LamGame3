@@ -16,12 +16,12 @@ const int TILE_SIZE=40;
 const int MAP_WIDTH=SCREEN_WIDTH/TILE_SIZE;
 const int MAP_HEIGHT=SCREEN_HEIGHT/TILE_SIZE;
 const int playerSpeed=4;
+const int enemySpeed=2;
 const int bulletSpeed=4;
 const int playerShootDelay=30;
-const int enemySpeed=2;
 const int BULLET_SIZE=10;
 const int EnemiesNum=3;
-const int EnemymoveDelay=5;
+const int EnemymoveDelay=3;
 const int EnemyshootDelay=3;
 const vector<vector<int>>Map=
 {
@@ -450,22 +450,22 @@ public:
         if(r==0)//Up
         {
             this->dirX=0;
-            this->dirY=-enemySpeed;
+            this->dirY=-1;
         }
         else if(r==1)//Down
         {
             this->dirX=0;
-            this->dirY=enemySpeed;
+            this->dirY=1;
         }
         else if(r==2)//Left
         {
             this->dirY=0;
-            this->dirX=-enemySpeed;
+            this->dirX=-1;
         }
         else if(r==3)//Right
         {
             this->dirY=0;
-            this->dirX=enemySpeed;
+            this->dirX=1;
         }
         directionTimer=0;
     }
@@ -481,8 +481,8 @@ public:
             changeDirection();
         }
 
-        int newX=x+this->dirX;
-        int newY=y+this->dirY;
+        int newX=x+this->dirX*enemySpeed;
+        int newY=y+this->dirY*enemySpeed;
         SDL_Rect newRect={newX,newY,TILE_SIZE,TILE_SIZE};
 
         bool wallCollision =false;
@@ -549,6 +549,9 @@ public:
     SDL_Texture *grassTexture=nullptr;
     SDL_Texture *brickTexture=nullptr;
     SDL_Texture *stoneTexture=nullptr;
+    SDL_Texture *yellowTankTexture=nullptr;
+    SDL_Texture *greenTankTexture=nullptr;
+    SDL_Texture *redTankTexture=nullptr;
     bool running;
     vector<Wall>walls;
     PlayerTank player1=spawnPlayer1();
@@ -641,6 +644,21 @@ public:
         if(!stoneTexture)
         {
             std::cerr<<"Failed to load stone texture! IMG_Error: "<<IMG_GetError()<<std::endl;
+        }
+        yellowTankTexture=IMG_LoadTexture(renderer,"yellow_tank.png");
+        if(!yellowTankTexture)
+        {
+            std::cerr<<"Failed to load yellow tank texture! IMG_Error: "<<IMG_GetError()<<std::endl;
+        }
+        greenTankTexture=IMG_LoadTexture(renderer,"green_tank.png");
+        if(!greenTankTexture)
+        {
+            std::cerr<<"Failed to load green tank texture! IMG_Error: "<<IMG_GetError()<<std::endl;
+        }
+        redTankTexture=IMG_LoadTexture(renderer,"red_tank.png");
+        if(!redTankTexture)
+        {
+            std::cerr<<"Failed to load red tank texture! IMG_Error: "<<IMG_GetError()<<std::endl;
         }
 
         generateWalls();
@@ -884,12 +902,66 @@ public:
             }
         }
 
-        if(player1.active)player1.render(renderer,1);
-        if(twoPlayerMode&&player2.active)player2.render(renderer,2);
-
-        for(auto&enemy:enemies)
+        if(player1.active)
         {
-            enemy.render(renderer);
+            if(yellowTankTexture)
+            {
+                double angle=0;
+                if(player1.dirX==0&&player1.dirY==-1)angle=0;
+                else if(player1.dirX==0&&player1.dirY==1)angle=180;
+                else if(player1.dirX==-1&&player1.dirY==0)angle=270;
+                else if(player1.dirX==1&&player1.dirY==0)angle=90;
+                SDL_RenderCopyEx(renderer,yellowTankTexture,NULL,&player1.rect,angle,NULL,SDL_FLIP_NONE);
+                for(auto &bullet:player1.bullets)
+                {
+                    bullet.render(renderer);
+                }
+            }
+            else
+            {
+                player1.render(renderer,1);
+            }
+        }
+        if(twoPlayerMode&&player2.active)
+        {
+            if(greenTankTexture)
+            {
+                double angle=0;
+                if(player2.dirX==0&&player2.dirY==-1)angle=0;
+                else if(player2.dirX==0&&player2.dirY==1)angle=180;
+                else if(player2.dirX==-1&&player2.dirY==0)angle=270;
+                else if(player2.dirX==1&&player2.dirY==0)angle=90;
+                SDL_RenderCopyEx(renderer,greenTankTexture,NULL,&player2.rect,angle,NULL,SDL_FLIP_NONE);
+                for(auto &bullet:player2.bullets)
+                {
+                    bullet.render(renderer);
+                }
+            }
+            else
+            {
+                player2.render(renderer,2);
+            }
+        }
+
+        for(auto &enemy:enemies)
+        {
+            if(redTankTexture)
+            {
+                double angle=0;
+                if(enemy.dirX==0&&enemy.dirY==-1)angle=0;
+                else if(enemy.dirX==0&&enemy.dirY==1)angle=180;
+                else if(enemy.dirX==-1&&enemy.dirY==0)angle=270;
+                else if(enemy.dirX==1&&enemy.dirY==0)angle=90;
+                SDL_RenderCopyEx(renderer,redTankTexture,NULL,&enemy.rect,angle,NULL,SDL_FLIP_NONE);
+                for(auto &bullet:enemy.bullets)
+                {
+                    bullet.render(renderer);
+                }
+            }
+            else
+            {
+                enemy.render(renderer);
+            }
         }
 
         SDL_RenderPresent(renderer);
@@ -919,6 +991,18 @@ public:
         if(stoneTexture)
         {
             SDL_DestroyTexture(stoneTexture);
+        }
+        if(yellowTankTexture)
+        {
+            SDL_DestroyTexture(yellowTankTexture);
+        }
+        if(greenTankTexture)
+        {
+            SDL_DestroyTexture(greenTankTexture);
+        }
+        if(redTankTexture)
+        {
+            SDL_DestroyTexture(redTankTexture);
         }
         SDL_DestroyRenderer(renderer);
         SDL_DestroyWindow(window);
