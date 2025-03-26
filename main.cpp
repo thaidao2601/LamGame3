@@ -17,34 +17,33 @@ const int MAP_WIDTH=SCREEN_WIDTH/TILE_SIZE;
 const int MAP_HEIGHT=SCREEN_HEIGHT/TILE_SIZE;
 const int playerSpeed=4;
 const int enemySpeed=2;
-const int bulletSpeed=4;
+const int bulletSpeed=5;
 const int playerShootDelay=30;
 const int BULLET_SIZE=10;
-const int EnemiesNum=3;
+const int EnemiesNum=4;
 const int EnemymoveDelay=3;
 const int EnemyshootDelay=3;
 const vector<vector<int>>Map=
 {
     {0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0},
-    {0,0,0,0,1,0,0,0,1,1,0,0,0,1,0,0,0,0},
-    {0,0,1,1,0,1,1,0,1,1,0,1,1,0,1,1,0,0},
-    {0,0,1,0,0,0,1,0,0,0,0,0,1,0,0,1,0,0},
-    {0,1,1,1,0,1,1,1,0,0,0,1,1,1,0,1,1,0},
-    {0,0,0,0,0,1,0,0,1,1,0,0,1,0,0,0,0,0},
-    {0,0,1,1,0,1,1,0,1,1,0,1,1,0,1,1,0,0},
-    {0,0,0,0,1,0,0,0,0,0,0,0,0,1,0,0,0,0},
-    {0,1,1,0,0,1,1,1,0,0,0,1,1,1,0,0,1,0},
-    {0,1,1,0,0,1,1,1,0,0,0,1,1,1,0,0,1,0},
-    {0,0,0,0,1,0,0,0,0,0,0,0,0,1,0,0,0,0},
-    {0,0,1,1,0,1,1,0,1,1,0,1,1,0,1,1,0,0},
-    {0,0,0,0,0,1,0,0,1,1,0,0,1,0,0,0,0,0},
-    {0,1,1,1,0,1,1,1,0,0,0,1,1,1,0,1,1,0},
-    {0,0,1,0,0,0,1,0,0,0,0,0,1,0,0,1,0,0},
-    {0,0,1,1,0,1,1,0,1,1,0,1,1,0,1,1,0,0},
-    {0,0,0,0,1,0,0,0,0,0,0,0,0,1,0,0,0,0},
+    {0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0},
+    {0,0,1,0,1,0,1,0,0,0,0,1,0,1,0,1,0,0},
+    {0,0,1,0,1,0,1,0,0,0,0,1,0,1,0,1,0,0},
+    {0,0,1,0,1,0,1,0,0,0,0,1,0,1,0,1,0,0},
+    {0,0,1,0,1,0,1,1,1,1,1,1,0,1,0,1,0,0},
+    {0,0,1,0,1,0,0,0,1,1,0,0,0,1,0,1,0,0},
+    {0,0,0,0,0,0,0,0,1,1,0,0,0,0,0,0,0,0},
+    {0,0,1,1,1,1,1,1,1,1,1,1,1,1,1,1,0,0},
+    {0,0,0,0,0,0,0,0,1,1,0,0,0,0,0,0,0,0},
+    {0,0,0,0,0,0,0,0,1,1,0,0,0,0,0,0,0,0},
+    {0,0,1,0,1,0,0,0,1,1,0,0,0,1,0,1,0,0},
+    {0,0,1,0,1,0,1,1,1,1,1,1,0,1,0,1,0,0},
+    {0,0,1,0,1,0,1,0,0,0,0,1,0,1,0,1,0,0},
+    {0,0,1,0,1,0,1,1,1,1,1,1,0,1,0,1,0,0},
+    {0,0,1,0,1,0,1,0,0,0,0,1,0,1,0,1,0,0},
+    {0,0,0,0,0,0,1,0,0,0,0,1,0,0,0,0,0,0},
     {0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0}
 };
-
 
 class Menu
 {
@@ -115,11 +114,11 @@ public:
 
     void renderText(const char *text,SDL_Rect rect,SDL_Color color)
     {
-        TTF_Font *font=TTF_OpenFont("timesbd.ttf",24);
+        TTF_Font *font=TTF_OpenFont("consola.ttf",24);
         if(!font)
         {
             //Fallback if font file not found
-            font=TTF_OpenFont("timesbd.ttf",24);
+            font=TTF_OpenFont("consola.ttf",24);
         }
 
         if(!font)
@@ -161,11 +160,11 @@ public:
         }
         //Draw title
         SDL_Color titleColor={255,255,0,255};//Yellow
-        TTF_Font* titleFont=TTF_OpenFont("timesbd.ttf",48);
+        TTF_Font* titleFont=TTF_OpenFont("consola.ttf",48);
         if(!titleFont)
         {
             //Fallback if font file not found
-            titleFont=TTF_OpenFont("timesbd.ttf",48);
+            titleFont=TTF_OpenFont("consola.ttf",48);
         }
 
         if(titleFont)
@@ -553,6 +552,10 @@ public:
     SDL_Texture *greenTankTexture=nullptr;
     SDL_Texture *redTankTexture=nullptr;
     bool running;
+    bool isPaused;
+    SDL_Rect pauseButton;
+    SDL_Rect continueButton;
+    SDL_Rect exitGameButton;
     vector<Wall>walls;
     PlayerTank player1=spawnPlayer1();
     PlayerTank player2=spawnPlayer2();
@@ -584,7 +587,7 @@ public:
             while(!validPosition)
             {
                 ex=(rand()%(MAP_WIDTH-2)+1)*TILE_SIZE;
-                ey=(rand()%(MAP_HEIGHT-2)+1)*TILE_SIZE;
+                ey=(rand()%(5)+1)*TILE_SIZE;
                 validPosition=true;
                 for(const auto&wall:walls)
                 {
@@ -611,6 +614,8 @@ public:
 
     Game(bool twoPlayer)
     {
+        running=true;
+        isPaused=false;
         twoPlayerMode=twoPlayer;
         running=true;
         if(SDL_Init(SDL_INIT_VIDEO)<0)
@@ -661,6 +666,7 @@ public:
             std::cerr<<"Failed to load red tank texture! IMG_Error: "<<IMG_GetError()<<std::endl;
         }
 
+        pauseButton={SCREEN_WIDTH-TILE_SIZE-30,0,30,30};
         generateWalls();
         spawnEnemies();
 
@@ -668,22 +674,38 @@ public:
 
     void update()
     {
-        player1.updateBullets();
-        if(twoPlayerMode)player2.updateBullets();
-
-        for(auto&enemy:enemies)
+        if(!isPaused)
         {
-            enemy.move(walls);
-            enemy.updateBullets();
-            if (rand()%100<2)
+            player1.updateBullets();
+            if(twoPlayerMode)player2.updateBullets();
+
+            for(auto&enemy:enemies)
             {
-                enemy.shoot();
+                enemy.move(walls);
+                enemy.updateBullets();
+                if (rand()%100<2)
+                {
+                    enemy.shoot();
+                }
             }
-        }
 
-        for(auto&enemy:enemies)
-        {
-            for(auto&bullet:enemy.bullets)
+            for(auto&enemy:enemies)
+            {
+                for(auto&bullet:enemy.bullets)
+                {
+                    for(auto&wall:walls)
+                    {
+                        if(wall.active&&SDL_HasIntersection(&bullet.rect,&wall.rect))
+                        {
+                            wall.active=false;
+                            bullet.active=false;
+                            break;
+                        }
+                    }
+                }
+            }
+
+            for(auto&bullet:player1.bullets)
             {
                 for(auto&wall:walls)
                 {
@@ -695,52 +717,10 @@ public:
                     }
                 }
             }
-        }
 
-        for(auto&bullet:player1.bullets)
-        {
-            for(auto&wall:walls)
+            for(auto&bullet:player1.bullets)
             {
-                if(wall.active&&SDL_HasIntersection(&bullet.rect,&wall.rect))
-                {
-                    wall.active=false;
-                    bullet.active=false;
-                    break;
-                }
-            }
-        }
-
-        for(auto&bullet:player1.bullets)
-        {
-            for(auto&enemy:enemies)
-            {
-                if(enemy.active&&SDL_HasIntersection(&bullet.rect,&enemy.rect))
-                {
-                    enemy.active=false;
-                    bullet.active=false;
-                    break;
-                }
-            }
-        }
-
-        if(twoPlayerMode)
-        {
-            for(auto &bullet:player2.bullets)
-            {
-                for(auto &wall:walls)
-                {
-                    if(wall.active&&SDL_HasIntersection(&bullet.rect,&wall.rect))
-                    {
-                        wall.active=false;
-                        bullet.active=false;
-                        break;
-                    }
-                }
-            }
-
-            for(auto &bullet:player2.bullets)
-            {
-                for(auto &enemy:enemies)
+                for(auto&enemy:enemies)
                 {
                     if(enemy.active&&SDL_HasIntersection(&bullet.rect,&enemy.rect))
                     {
@@ -750,51 +730,80 @@ public:
                     }
                 }
             }
-        }
 
-        if(twoPlayerMode)
-        {
-            for(auto &enemy:enemies)
+            if(twoPlayerMode)
             {
-                for(auto &bullet:enemy.bullets)
+                for(auto &bullet:player2.bullets)
                 {
-                    if(SDL_HasIntersection(&bullet.rect,&player2.rect))
+                    for(auto &wall:walls)
                     {
-                        player2.active=false;
+                        if(wall.active&&SDL_HasIntersection(&bullet.rect,&wall.rect))
+                        {
+                            wall.active=false;
+                            bullet.active=false;
+                            break;
+                        }
+                    }
+                }
+
+                for(auto &bullet:player2.bullets)
+                {
+                    for(auto &enemy:enemies)
+                    {
+                        if(enemy.active&&SDL_HasIntersection(&bullet.rect,&enemy.rect))
+                        {
+                            enemy.active=false;
+                            bullet.active=false;
+                            break;
+                        }
+                    }
+                }
+            }
+
+            if(twoPlayerMode)
+            {
+                for(auto &enemy:enemies)
+                {
+                    for(auto &bullet:enemy.bullets)
+                    {
+                        if(SDL_HasIntersection(&bullet.rect,&player2.rect))
+                        {
+                            player2.active=false;
+                            bullet.active=false;
+                            break;
+                        }
+                    }
+                }
+            }
+
+            enemies.erase(remove_if(enemies.begin(),enemies.end(),
+                                    [](EnemyTank &e)
+            {
+                return !e.active;
+            }),enemies.end());
+
+            if(enemies.empty())
+            {
+                running=false;
+            }
+
+            for(auto&enemy:enemies)
+            {
+                for(auto&bullet:enemy.bullets)
+                {
+                    if(SDL_HasIntersection(&bullet.rect,&player1.rect))
+                    {
+                        player1.active=false;
                         bullet.active=false;
                         break;
                     }
                 }
             }
-        }
 
-        enemies.erase(remove_if(enemies.begin(),enemies.end(),
-                                [](EnemyTank &e)
-        {
-            return !e.active;
-        }),enemies.end());
-
-        if(enemies.empty())
-        {
-            running=false;
-        }
-
-        for(auto&enemy:enemies)
-        {
-            for(auto&bullet:enemy.bullets)
+            if(!player1.active&&(!twoPlayerMode||!player2.active))
             {
-                if(SDL_HasIntersection(&bullet.rect,&player1.rect))
-                {
-                        player1.active=false;
-                        bullet.active=false;
-                        break;
-                }
+                running = false;//Dừng game khi player1 không hoạt động và (không phải chế độ 2 người chơi hoặc player2 không hoạt động)
             }
-        }
-
-        if(!player1.active&&(!twoPlayerMode||!player2.active))
-        {
-            running = false;//Dừng game khi player1 không hoạt động và (không phải chế độ 2 người chơi hoặc player2 không hoạt động)
         }
     }
 
@@ -807,30 +816,109 @@ public:
             {
                 running=false;
             }
+            else if(event.type==SDL_MOUSEBUTTONDOWN)
+            {
+                int mouseX,mouseY;
+                SDL_GetMouseState(&mouseX,&mouseY);
+                if(!isPaused&&mouseX>=pauseButton.x&&mouseX<=pauseButton.x+pauseButton.w&&
+                              mouseY>=pauseButton.y&&mouseY<=pauseButton.y+pauseButton.h)
+                {
+                    isPaused=true;
+                }
+
+                if(isPaused)
+                {
+                    if (mouseX>=continueButton.x&&mouseX<=continueButton.x+continueButton.w&&
+                        mouseY>=continueButton.y&&mouseY<=continueButton.y+continueButton.h)
+                    {
+                        isPaused=false;
+                    }
+
+                    if(mouseX>=exitGameButton.x&&mouseX<=exitGameButton.x+exitGameButton.w&&
+                        mouseY>=exitGameButton.y&&mouseY<=exitGameButton.y+exitGameButton.h)
+                    {
+                        running=false;
+                    }
+                }
+            }
+            else if(event.type==SDL_KEYDOWN)
+            {
+                if(event.key.keysym.sym==SDLK_ESCAPE)
+                {
+                    isPaused=!isPaused;
+                }
+            }
         }
 
-        //Kiểm tra trạng thái phím hiện tại(không phụ thuộc vào hàng đợi sự kiện)
-        const Uint8 *keystate=SDL_GetKeyboardState(NULL);
-
-        //Xử lý di chuyển cho người chơi 1(arrow keys+SPACE)
-        if(keystate[SDL_SCANCODE_UP])player1.move(0,-1,walls);
-        if(keystate[SDL_SCANCODE_DOWN])player1.move(0,1,walls);
-        if(keystate[SDL_SCANCODE_LEFT])player1.move(-1,0,walls);
-        if(keystate[SDL_SCANCODE_RIGHT])player1.move(1,0,walls);
-        if(keystate[SDL_SCANCODE_SPACE])player1.shoot();
-
-        // Xử lý di chuyển cho người chơi 2(WASD+K)
-        if(twoPlayerMode && player2.active)
+        if (!isPaused)
         {
-            if(keystate[SDL_SCANCODE_W])player2.move(0,-1,walls);
-            if(keystate[SDL_SCANCODE_S])player2.move(0,1,walls);
-            if(keystate[SDL_SCANCODE_A])player2.move(-1,0,walls);
-            if(keystate[SDL_SCANCODE_D])player2.move(1,0,walls);
-            if(keystate[SDL_SCANCODE_K])player2.shoot();
+            const Uint8 *keystate = SDL_GetKeyboardState(NULL);
+
+            // Player 1 controls
+            if(keystate[SDL_SCANCODE_UP])player1.move(0,-1,walls);
+            if(keystate[SDL_SCANCODE_DOWN])player1.move(0,1,walls);
+            if(keystate[SDL_SCANCODE_LEFT])player1.move(-1,0,walls);
+            if(keystate[SDL_SCANCODE_RIGHT])player1.move(1,0,walls);
+            if(keystate[SDL_SCANCODE_SPACE])player1.shoot();
+
+            // Player 2 controls(if two-player mode)
+            if(twoPlayerMode && player2.active)
+            {
+                if(keystate[SDL_SCANCODE_W])player2.move(0,-1,walls);
+                if(keystate[SDL_SCANCODE_S])player2.move(0,1,walls);
+                if(keystate[SDL_SCANCODE_A])player2.move(-1,0,walls);
+                if(keystate[SDL_SCANCODE_D])player2.move(1,0,walls);
+                if(keystate[SDL_SCANCODE_K])player2.shoot();
+            }
         }
     }
 
-    //Update the render method to use textures
+    void renderPauseMenu()
+    {
+        SDL_SetRenderDrawColor(renderer,0,0,0,128);
+        SDL_Rect overlay={0,0,SCREEN_WIDTH,SCREEN_HEIGHT};
+        SDL_RenderFillRect(renderer,&overlay);
+
+        int buttonWidth=200;
+        int buttonHeight=50;
+        int startY=SCREEN_HEIGHT/2-buttonHeight-20;
+
+        continueButton={(SCREEN_WIDTH-buttonWidth)/2,startY,buttonWidth,buttonHeight};
+        exitGameButton={(SCREEN_WIDTH-buttonWidth)/2,startY+buttonHeight+20,buttonWidth,buttonHeight};
+
+        SDL_SetRenderDrawColor(renderer,100,100,100,255);
+        SDL_RenderFillRect(renderer,&continueButton);
+        SDL_RenderFillRect(renderer,&exitGameButton);
+
+        SDL_Color textColor={255,255,255,255};
+        renderText("Tiếp tục",continueButton,textColor);
+        renderText("Thoát",exitGameButton,textColor);
+    }
+
+    void renderText(const char *text,SDL_Rect rect,SDL_Color color)
+    {
+        TTF_Font *font=TTF_OpenFont("consola.ttf",24);
+        if (!font)
+        {
+            std::cerr<<"Failed to load font! TTF_Error: "<<TTF_GetError()<< std::endl;
+            return;
+        }
+
+        SDL_Surface *textSurface=TTF_RenderUTF8_Solid(font,text,color);
+        if (!textSurface)
+        {
+            TTF_CloseFont(font);
+            return;
+        }
+
+        SDL_Texture *textTexture=SDL_CreateTextureFromSurface(renderer,textSurface);
+        SDL_Rect textRect={rect.x+(rect.w-textSurface->w)/2,rect.y+(rect.h-textSurface->h)/2,textSurface->w,textSurface->h};
+        SDL_RenderCopy(renderer,textTexture,NULL,&textRect);
+        SDL_FreeSurface(textSurface);
+        SDL_DestroyTexture(textTexture);
+        TTF_CloseFont(font);
+    }
+
     void render()
     {
         SDL_SetRenderDrawColor(renderer,128,128,128,255);
@@ -884,6 +972,13 @@ public:
             SDL_Rect rightBoundary={SCREEN_WIDTH-TILE_SIZE,0,TILE_SIZE,SCREEN_HEIGHT};
             SDL_RenderFillRect(renderer,&rightBoundary);
         }
+
+        SDL_SetRenderDrawColor(renderer,0,0,0,255);
+        SDL_RenderFillRect(renderer,&pauseButton);
+        SDL_SetRenderDrawColor(renderer,255,255,255,255);
+        SDL_RenderDrawLine(renderer,pauseButton.x+10,pauseButton.y+10,pauseButton.x+10,pauseButton.y+20);
+        SDL_RenderDrawLine(renderer,pauseButton.x+20,pauseButton.y+10,pauseButton.x+20, pauseButton.y+20);
+
 
         //Draw walls with brick texture instead of solid color
         for(int i=0;i<int(walls.size());++i)
@@ -964,6 +1059,11 @@ public:
             }
         }
 
+        if (isPaused)
+        {
+            renderPauseMenu();
+        }
+
         SDL_RenderPresent(renderer);
     }
 
@@ -1012,7 +1112,7 @@ public:
 
 int main(int argc,char *argv[])
 {
-    srand(time(nullptr));
+    //srand(time(nullptr));
     //Initialize SDL_ttf for menu text rendering
     if(TTF_Init()<0)
     {
