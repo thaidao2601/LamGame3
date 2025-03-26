@@ -19,8 +19,9 @@ const int playerSpeed=4;
 const int enemySpeed=2;
 const int bulletSpeed=5;
 const int playerShootDelay=30;
+const int playerLives=1;
 const int BULLET_SIZE=10;
-const int EnemiesNum=4;
+const int EnemiesNum=1;
 const int EnemymoveDelay=3;
 const int EnemyshootDelay=3;
 const vector<vector<int>>Map=
@@ -54,7 +55,6 @@ public:
     bool running;
     bool startGame;
     int playerNum;
-
     SDL_Rect onePlayerButton;
     SDL_Rect twoPlayerButton;
     SDL_Rect exitButton;
@@ -65,6 +65,7 @@ public:
         startGame=false;
         playerNum=0;
 
+        //Kiểm tra khởi tạo SDL
         if(SDL_Init(SDL_INIT_VIDEO)<0)
         {
             std::cerr<<"SDL could not initialize! SDL_Error: "<<SDL_GetError()<<std::endl;
@@ -72,6 +73,7 @@ public:
             return;
         }
 
+        //Kiểm tra khởi tạo TTF
         if(TTF_Init()<0)
         {
             std::cerr<<"TTF could not initialize! TTF_Error: "<<TTF_GetError()<<std::endl;
@@ -79,6 +81,7 @@ public:
             return;
         }
 
+        //Tạo window và kiểm tra quá trình tạo window
         window=SDL_CreateWindow("Battle City",SDL_WINDOWPOS_CENTERED,SDL_WINDOWPOS_CENTERED,SCREEN_WIDTH,SCREEN_HEIGHT,SDL_WINDOW_SHOWN);
         if(!window)
         {
@@ -87,6 +90,7 @@ public:
             return;
         }
 
+        //Tạo render và kiểm tra qua trình tạo render
         renderer=SDL_CreateRenderer(window,-1,SDL_RENDERER_ACCELERATED);
         if(!renderer)
         {
@@ -95,18 +99,18 @@ public:
             return;
         }
 
+        //Tải ảnh nền menu và kiểm tra quá trình tải
         backgroundTexture=IMG_LoadTexture(renderer,"menu_background.png");
         if(!backgroundTexture)
         {
             std::cerr<<"Failed to load menu background! IMG_Error: "<<IMG_GetError()<<std::endl;
         }
 
-        //Setup menu buttons (centered)
+        //Thiết lập vị trị các nút trong menu
         int buttonWidth=300;
         int buttonHeight=60;
         int buttonGap=30;
         int startY=(SCREEN_HEIGHT/2)-buttonHeight-(buttonGap/2)-buttonHeight/2;
-
         onePlayerButton={(SCREEN_WIDTH-buttonWidth)/2,startY,buttonWidth,buttonHeight};
         twoPlayerButton={(SCREEN_WIDTH-buttonWidth)/2,startY+buttonHeight+buttonGap,buttonWidth,buttonHeight};
         exitButton={(SCREEN_WIDTH-buttonWidth)/2,startY+2*(buttonHeight+buttonGap),buttonWidth,buttonHeight};
@@ -561,6 +565,11 @@ public:
     PlayerTank player2=spawnPlayer2();
     bool twoPlayerMode=false;
     vector<EnemyTank>enemies;
+    int enemyCount;
+    int player1Lives;
+    int player2Lives;
+    bool gameOver;
+    bool victory;
 
     void generateWalls()
     {
@@ -618,6 +627,11 @@ public:
         isPaused=false;
         twoPlayerMode=twoPlayer;
         running=true;
+        enemyCount=EnemiesNum;
+        player1Lives=playerLives;
+        player2Lives=twoPlayerMode?playerLives:0;
+        gameOver=false;
+        victory=false;
         if(SDL_Init(SDL_INIT_VIDEO)<0)
         {
             std::cerr<<"SDL could not initialize! SDL_Error: "<<SDL_GetError()<<std::endl;
@@ -674,7 +688,7 @@ public:
 
     void update()
     {
-        if(!isPaused)
+        if(!isPaused&&!gameOver)
         {
             player1.updateBullets();
             if(twoPlayerMode)player2.updateBullets();
@@ -782,10 +796,10 @@ public:
                 return !e.active;
             }),enemies.end());
 
-            if(enemies.empty())
-            {
-                running=false;
-            }
+            //if(enemies.empty())
+            //{
+            //    running=false;
+            //}
 
             for(auto&enemy:enemies)
             {
@@ -800,10 +814,40 @@ public:
                 }
             }
 
-            if(!player1.active&&(!twoPlayerMode||!player2.active))
+            if(!player1.active)
             {
-                running = false;//Dừng game khi player1 không hoạt động và (không phải chế độ 2 người chơi hoặc player2 không hoạt động)
+                player1Lives--;
+                if(player1Lives>0)
+                {
+                    player1=spawnPlayer1();
+                }
             }
+
+            if(twoPlayerMode&&!player2.active)
+            {
+                player2Lives--;
+                if(player2Lives>0)
+                {
+                    player2=spawnPlayer2();
+                }
+            }
+
+            enemyCount = enemies.size();
+            if(enemyCount==0)
+            {
+                gameOver=true;
+                victory=true;
+            }
+            if((player1Lives==0&&(!twoPlayerMode||player2Lives==0)))
+            {
+                gameOver=true;
+                victory=false;
+            }
+
+            //if(!player1.active&&(!twoPlayerMode||!player2.active))
+            //{
+            //    running = false;//Dừng game khi player1 không hoạt động và (không phải chế độ 2 người chơi hoặc player2 không hoạt động)
+            //}
         }
     }
 
@@ -871,6 +915,70 @@ public:
                 if(keystate[SDL_SCANCODE_K])player2.shoot();
             }
         }
+    }
+
+    void renderGameStatus()
+    {
+        TTF_Font *font=TTF_OpenFont("consola.ttf",20);
+        if(!font)
+        {
+            std::cerr<<"Failed to load font!"<<std::endl;
+            return;
+        }
+        SDL_Color textColor={255,255,255,255};
+
+        std::string enemyText="Địch còn lại: "+std::to_string(enemyCount);
+        SDL_Surface *enemySurface=TTF_RenderUTF8_Solid(font,enemyText.c_str(),textColor);
+        SDL_Texture *enemyTexture=SDL_CreateTextureFromSurface(renderer,enemySurface);
+        SDL_Rect enemyRect={10,10,enemySurface->w,enemySurface->h};
+        SDL_RenderCopy(renderer,enemyTexture,NULL,&enemyRect);
+        SDL_FreeSurface(enemySurface);
+        SDL_DestroyTexture(enemyTexture);
+
+        std::string player1Text="Xe tăng 1: "+std::to_string(player1Lives)+" mạng";
+        SDL_Surface *player1Surface=TTF_RenderUTF8_Solid(font,player1Text.c_str(),textColor);
+        SDL_Texture *player1Texture=SDL_CreateTextureFromSurface(renderer,player1Surface);
+        SDL_Rect player1Rect={10,40,player1Surface->w,player1Surface->h};
+        SDL_RenderCopy(renderer,player1Texture,NULL,&player1Rect);
+        SDL_FreeSurface(player1Surface);
+        SDL_DestroyTexture(player1Texture);
+
+        if(twoPlayerMode)
+        {
+            std::string player2Text="Xe tăng 2: "+std::to_string(player2Lives)+" mạng";
+            SDL_Surface *player2Surface=TTF_RenderUTF8_Solid(font,player2Text.c_str(),textColor);
+            SDL_Texture *player2Texture=SDL_CreateTextureFromSurface(renderer,player2Surface);
+            SDL_Rect player2Rect={10,70,player2Surface->w,player2Surface->h};
+            SDL_RenderCopy(renderer,player2Texture,NULL,&player2Rect);
+            SDL_FreeSurface(player2Surface);
+            SDL_DestroyTexture(player2Texture);
+        }
+
+        TTF_CloseFont(font);
+    }
+
+    void renderGameResult()
+    {
+        TTF_Font *font=TTF_OpenFont("consola.ttf",48);
+        if(!font)
+        {
+            std::cerr<<"Failed to load font!"<<std::endl;
+            return;
+        }
+
+        SDL_Color textColor={255,255,255,255};
+        std::string resultText=victory?"Chiến Thắng!":"Thua Cuộc!";
+
+        SDL_Surface *resultSurface=TTF_RenderUTF8_Solid(font,resultText.c_str(),textColor);
+        SDL_Texture *resultTexture=SDL_CreateTextureFromSurface(renderer,resultSurface);
+        SDL_Rect resultRect={(SCREEN_WIDTH-resultSurface->w)/2,(SCREEN_HEIGHT-resultSurface->h)/2,resultSurface->w,resultSurface->h};
+        SDL_SetRenderDrawColor(renderer,0,0,0,200);
+        SDL_Rect overlay = {0,0,SCREEN_WIDTH,SCREEN_HEIGHT};
+        SDL_RenderFillRect(renderer,&overlay);
+        SDL_RenderCopy(renderer,resultTexture,NULL,&resultRect);
+        SDL_FreeSurface(resultSurface);
+        SDL_DestroyTexture(resultTexture);
+        TTF_CloseFont(font);
     }
 
     void renderPauseMenu()
@@ -1059,6 +1167,12 @@ public:
             }
         }
 
+        renderGameStatus();
+        if(gameOver)
+        {
+            renderGameResult();
+        }
+
         if (isPaused)
         {
             renderPauseMenu();
@@ -1112,28 +1226,23 @@ public:
 
 int main(int argc,char *argv[])
 {
-    //srand(time(nullptr));
-    //Initialize SDL_ttf for menu text rendering
-    if(TTF_Init()<0)
-    {
-        std::cerr<<"SDL_ttf could not initialize! SDL_ttf Error: "<<TTF_GetError()<<std::endl;
-        return 1;
-    }
+    //srand(time(nullptr));//Random theo thời gian thực, đảm bảo luôn ngẫu nhiên
 
-    //Initialize SDL_image for loading PNG
+    //Kiểm tra khởi tạo thư viện IMG
     int imgFlags=IMG_INIT_PNG;
     if(!(IMG_Init(imgFlags)&imgFlags))
     {
         std::cerr<<"SDL_image could not initialize! SDL_image Error: "<<IMG_GetError()<<std::endl;
-        //Continue even if image loading fails
     }
 
+    //Chạy menu game
     Menu menu;
     if(menu.running)
     {
         menu.run();
     }
 
+    //Chạy game
     if(menu.startGame)
     {
         Game game(menu.playerNum==2);
@@ -1143,6 +1252,7 @@ int main(int argc,char *argv[])
         }
     }
 
+    //Đóng các thư viện SDL
     IMG_Quit();
     TTF_Quit();
     return 0;
