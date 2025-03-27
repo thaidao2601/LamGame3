@@ -17,13 +17,14 @@ const int MAP_WIDTH=SCREEN_WIDTH/TILE_SIZE;
 const int MAP_HEIGHT=SCREEN_HEIGHT/TILE_SIZE;
 const int playerSpeed=4;
 const int enemySpeed=4;
-const int bulletSpeed=5;
+const int bulletSpeed=10;
 const int playerShootDelay=30;
-const int playerLives=1;
+const int playerLives=2;
 const int BULLET_SIZE=10;
-const int EnemiesNum=2;
+const int EnemiesNum=4;
 const int EnemymoveDelay=3;
 const int EnemyshootDelay=3;
+const int ExplosionTime=1000;
 const vector<vector<int>>Map=
 {
     {0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0},
@@ -333,6 +334,26 @@ public:
 
 };
 
+class Explosion
+{
+public:
+    int x,y;
+    SDL_Rect rect;
+    Uint32 startTime;
+    bool active;
+
+    Explosion(int posX,int posY):x(posX),y(posY),active(true)
+    {
+        rect={x,y,TILE_SIZE,TILE_SIZE};
+        startTime=SDL_GetTicks();
+    }
+
+    bool isExpired()const
+    {
+        return SDL_GetTicks()-startTime>ExplosionTime;
+    }
+};
+
 class PlayerTank
 {
 public:
@@ -569,6 +590,8 @@ public:
     SDL_Rect restartButton;
     SDL_Rect exitButton;
     bool returnToMenu;
+    SDL_Texture *explosionTexture=nullptr;
+    vector<Explosion>explosions;
 
     void generateWalls()
     {
@@ -679,6 +702,11 @@ public:
         {
             std::cerr<<"Failed to load red tank texture! IMG_Error: "<<IMG_GetError()<<std::endl;
         }
+        explosionTexture=IMG_LoadTexture(renderer,"explosion.jpg");
+        if (!explosionTexture)
+        {
+            std::cerr<<"Failed to load explosion texture! IMG_Error: "<<IMG_GetError()<<std::endl;
+        }
 
         pauseButton={SCREEN_WIDTH-TILE_SIZE-30,0,30,30};
         generateWalls();
@@ -738,6 +766,7 @@ public:
                 {
                     if(enemy.active&&SDL_HasIntersection(&bullet.rect,&enemy.rect))
                     {
+                        explosions.push_back(Explosion(enemy.rect.x,enemy.rect.y));
                         enemy.active=false;
                         bullet.active=false;
                         break;
@@ -766,6 +795,7 @@ public:
                     {
                         if(enemy.active&&SDL_HasIntersection(&bullet.rect,&enemy.rect))
                         {
+                            explosions.push_back(Explosion(enemy.rect.x,enemy.rect.y));
                             enemy.active=false;
                             bullet.active=false;
                             break;
@@ -782,6 +812,7 @@ public:
                     {
                         if(SDL_HasIntersection(&bullet.rect,&player2.rect))
                         {
+                            explosions.push_back(Explosion(player2.rect.x,player2.rect.y));
                             player2.active=false;
                             bullet.active=false;
                             break;
@@ -807,6 +838,7 @@ public:
                 {
                     if(SDL_HasIntersection(&bullet.rect,&player1.rect))
                     {
+                        explosions.push_back(Explosion(player1.rect.x,player1.rect.y));
                         player1.active=false;
                         bullet.active=false;
                         break;
@@ -816,7 +848,7 @@ public:
 
             if(!player1.active)
             {
-                player1Lives--;
+                if(player1Lives>0)player1Lives--;
                 if(player1Lives>0)
                 {
                     player1=spawnPlayer1();
@@ -825,7 +857,7 @@ public:
 
             if(twoPlayerMode&&!player2.active)
             {
-                player2Lives--;
+                if(player2Lives>0)player2Lives--;
                 if(player2Lives>0)
                 {
                     player2=spawnPlayer2();
@@ -1197,6 +1229,22 @@ public:
             }
         }
 
+        if(explosionTexture)
+        {
+            for(auto i=explosions.begin();i!= explosions.end();)
+            {
+                if (i->isExpired())
+                {
+                    i=explosions.erase(i);
+                }
+                else
+                {
+                    SDL_RenderCopy(renderer,explosionTexture,NULL,&i->rect);
+                    ++i;
+                }
+            }
+        }
+
         renderGameStatus();
         if(gameOver)
         {
@@ -1248,6 +1296,11 @@ public:
         {
             SDL_DestroyTexture(redTankTexture);
         }
+        if(explosionTexture)
+        {
+            SDL_DestroyTexture(explosionTexture);
+        }
+
         SDL_DestroyRenderer(renderer);
         SDL_DestroyWindow(window);
         SDL_Quit();
