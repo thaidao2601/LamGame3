@@ -16,12 +16,12 @@ const int TILE_SIZE=40;
 const int MAP_WIDTH=SCREEN_WIDTH/TILE_SIZE;
 const int MAP_HEIGHT=SCREEN_HEIGHT/TILE_SIZE;
 const int playerSpeed=4;
-const int enemySpeed=2;
+const int enemySpeed=4;
 const int bulletSpeed=5;
 const int playerShootDelay=30;
 const int playerLives=1;
 const int BULLET_SIZE=10;
-const int EnemiesNum=1;
+const int EnemiesNum=2;
 const int EnemymoveDelay=3;
 const int EnemyshootDelay=3;
 const vector<vector<int>>Map=
@@ -118,19 +118,15 @@ public:
 
     void renderText(const char *text,SDL_Rect rect,SDL_Color color)
     {
+        //Tải phông và kiểm tra quá trình tải
         TTF_Font *font=TTF_OpenFont("consola.ttf",24);
-        if(!font)
-        {
-            //Fallback if font file not found
-            font=TTF_OpenFont("consola.ttf",24);
-        }
-
         if(!font)
         {
             std::cerr<<"Failed to load font! TTF_Error: "<<TTF_GetError()<<std::endl;
             return;
         }
 
+        //Tải bề mặt để chứa chữ, trên nền trong suốt
         SDL_Surface *textSurface=TTF_RenderUTF8_Solid(font,text,color);
         if(!textSurface)
         {
@@ -549,7 +545,7 @@ class Game
 public:
     SDL_Window *window;
     SDL_Renderer *renderer;
-    SDL_Texture *grassTexture=nullptr;
+    //SDL_Texture *grassTexture=nullptr;
     SDL_Texture *brickTexture=nullptr;
     SDL_Texture *stoneTexture=nullptr;
     SDL_Texture *yellowTankTexture=nullptr;
@@ -570,6 +566,9 @@ public:
     int player2Lives;
     bool gameOver;
     bool victory;
+    SDL_Rect restartButton;
+    SDL_Rect exitButton;
+    bool returnToMenu;
 
     void generateWalls()
     {
@@ -632,6 +631,7 @@ public:
         player2Lives=twoPlayerMode?playerLives:0;
         gameOver=false;
         victory=false;
+        returnToMenu=false;
         if(SDL_Init(SDL_INIT_VIDEO)<0)
         {
             std::cerr<<"SDL could not initialize! SDL_Error: "<<SDL_GetError()<<std::endl;
@@ -649,11 +649,11 @@ public:
             std::cerr<<"Renderer could not be created! SDL_Error: "<<SDL_GetError()<<std::endl;
             running=false;
         }
-        grassTexture=IMG_LoadTexture(renderer,"grass_background2.png");
-        if(!grassTexture)
-        {
-            std::cerr<<"Failed to load grass background! IMG_Error: "<<IMG_GetError()<<std::endl;
-        }
+        //grassTexture=IMG_LoadTexture(renderer,"grass_background2.png");
+        //if(!grassTexture)
+        //{
+        //    std::cerr<<"Failed to load grass background! IMG_Error: "<<IMG_GetError()<<std::endl;
+        //}
         brickTexture=IMG_LoadTexture(renderer,"brick.jpg");
         if(!brickTexture)
         {
@@ -832,7 +832,7 @@ public:
                 }
             }
 
-            enemyCount = enemies.size();
+            enemyCount=enemies.size();
             if(enemyCount==0)
             {
                 gameOver=true;
@@ -884,6 +884,23 @@ public:
                         running=false;
                     }
                 }
+                if(gameOver)
+                {
+                    // Restart button
+                    if(mouseX>=restartButton.x&&mouseX<=restartButton.x+restartButton.w&&
+                       mouseY>=restartButton.y&&mouseY<=restartButton.y+restartButton.h)
+                    {
+                        returnToMenu=true;
+                        running=false;
+                    }
+
+                    // Exit button
+                    if(mouseX>=exitButton.x&&mouseX<=exitButton.x+exitButton.w&&
+                       mouseY>=exitButton.y&&mouseY<=exitButton.y+exitButton.h)
+                    {
+                        running=false;
+                    }
+                }
             }
             else if(event.type==SDL_KEYDOWN)
             {
@@ -896,7 +913,7 @@ public:
 
         if (!isPaused)
         {
-            const Uint8 *keystate = SDL_GetKeyboardState(NULL);
+            const Uint8 *keystate=SDL_GetKeyboardState(NULL);
 
             // Player 1 controls
             if(keystate[SDL_SCANCODE_UP])player1.move(0,-1,walls);
@@ -973,11 +990,24 @@ public:
         SDL_Texture *resultTexture=SDL_CreateTextureFromSurface(renderer,resultSurface);
         SDL_Rect resultRect={(SCREEN_WIDTH-resultSurface->w)/2,(SCREEN_HEIGHT-resultSurface->h)/2,resultSurface->w,resultSurface->h};
         SDL_SetRenderDrawColor(renderer,0,0,0,200);
-        SDL_Rect overlay = {0,0,SCREEN_WIDTH,SCREEN_HEIGHT};
+        SDL_Rect overlay={0,0,SCREEN_WIDTH,SCREEN_HEIGHT};
         SDL_RenderFillRect(renderer,&overlay);
         SDL_RenderCopy(renderer,resultTexture,NULL,&resultRect);
         SDL_FreeSurface(resultSurface);
         SDL_DestroyTexture(resultTexture);
+
+        int buttonWidth=200;
+        int buttonHeight=50;
+        int startY=SCREEN_HEIGHT/2+50;
+        restartButton={(SCREEN_WIDTH-buttonWidth)/2-buttonWidth/2-10,startY,buttonWidth,buttonHeight};
+        exitButton={(SCREEN_WIDTH-buttonWidth)/2+buttonWidth/2+10,startY,buttonWidth,buttonHeight};
+        SDL_SetRenderDrawColor(renderer,100,100,100,255);
+        SDL_RenderFillRect(renderer,&restartButton);
+        SDL_RenderFillRect(renderer,&exitButton);
+        SDL_Color buttonTextColor={255,255,255,255};
+        renderText("Chơi lại",restartButton,buttonTextColor);
+        renderText("Thoát",exitButton,buttonTextColor);
+
         TTF_CloseFont(font);
     }
 
@@ -1029,16 +1059,16 @@ public:
 
     void render()
     {
-        SDL_SetRenderDrawColor(renderer,128,128,128,255);
+        SDL_SetRenderDrawColor(renderer,0,0,0,255);
         SDL_RenderClear(renderer);
 
         //Draw the grass background
-        if(grassTexture)
-        {
+        //if(grassTexture)
+        //{
             //Draw the grass background only in the playable area
-            SDL_Rect playArea={TILE_SIZE,TILE_SIZE,SCREEN_WIDTH-2*TILE_SIZE,SCREEN_HEIGHT-2*TILE_SIZE};
-            SDL_RenderCopy(renderer,grassTexture,NULL,&playArea);
-        }
+        //    SDL_Rect playArea={TILE_SIZE,TILE_SIZE,SCREEN_WIDTH-2*TILE_SIZE,SCREEN_HEIGHT-2*TILE_SIZE};
+        //    SDL_RenderCopy(renderer,grassTexture,NULL,&playArea);
+        //}
 
         //Draw the boundary using stone texture
         if(stoneTexture)
@@ -1185,19 +1215,19 @@ public:
     {
         while(running)
         {
+            handleEvents();
             update();
             render();
-            handleEvents();
             SDL_Delay(16);
         }
     }
 
     ~Game()
     {
-        if(grassTexture)
-        {
-            SDL_DestroyTexture(grassTexture);
-        }
+        //if(grassTexture)
+        //{
+        //    SDL_DestroyTexture(grassTexture);
+        //}
         if(brickTexture)
         {
             SDL_DestroyTexture(brickTexture);
@@ -1235,20 +1265,37 @@ int main(int argc,char *argv[])
         std::cerr<<"SDL_image could not initialize! SDL_image Error: "<<IMG_GetError()<<std::endl;
     }
 
-    //Chạy menu game
-    Menu menu;
-    if(menu.running)
+    while(true)
     {
-        menu.run();
-    }
-
-    //Chạy game
-    if(menu.startGame)
-    {
-        Game game(menu.playerNum==2);
-        if(game.running)
+        //Chạy menu game
+        Menu menu;
+        if(menu.running)
         {
-            game.run();
+            menu.run();
+        }
+
+        //Chạy game
+        if(menu.startGame)
+        {
+            Game game(menu.playerNum==2);
+            if(game.running)
+            {
+                game.run();
+            }
+
+            //Xử lí lựa chọn ở màn hình game over
+            if(game.returnToMenu)
+            {
+                continue;//Trở về menu
+            }
+            else
+            {
+                break;//Thoát chương trình
+            }
+        }
+        else
+        {
+            break;//Thoát khi menu dừng
         }
     }
 
