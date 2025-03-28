@@ -112,9 +112,9 @@ public:
         int buttonHeight=60;
         int buttonGap=30;
         int startY=(SCREEN_HEIGHT/2)-buttonHeight-(buttonGap/2)-buttonHeight/2;
-        onePlayerButton={(SCREEN_WIDTH-buttonWidth)/2,startY,buttonWidth,buttonHeight};
-        twoPlayerButton={(SCREEN_WIDTH-buttonWidth)/2,startY+buttonHeight+buttonGap,buttonWidth,buttonHeight};
-        exitButton={(SCREEN_WIDTH-buttonWidth)/2,startY+2*(buttonHeight+buttonGap),buttonWidth,buttonHeight};
+        onePlayerButton= {(SCREEN_WIDTH-buttonWidth)/2,startY,buttonWidth,buttonHeight};
+        twoPlayerButton= {(SCREEN_WIDTH-buttonWidth)/2,startY+buttonHeight+buttonGap,buttonWidth,buttonHeight};
+        exitButton= {(SCREEN_WIDTH-buttonWidth)/2,startY+2*(buttonHeight+buttonGap),buttonWidth,buttonHeight};
     }
 
     void renderText(const char *text,SDL_Rect rect,SDL_Color color)
@@ -138,7 +138,7 @@ public:
         SDL_Texture *textTexture=SDL_CreateTextureFromSurface(renderer,textSurface);
 
         // Center text in button
-        SDL_Rect textRect={rect.x+(rect.w-textSurface->w)/2,rect.y+(rect.h-textSurface->h)/2,textSurface->w,textSurface->h};
+        SDL_Rect textRect= {rect.x+(rect.w-textSurface->w)/2,rect.y+(rect.h-textSurface->h)/2,textSurface->w,textSurface->h};
 
         SDL_RenderCopy(renderer,textTexture,NULL,&textRect);
 
@@ -160,7 +160,7 @@ public:
             SDL_RenderClear(renderer);
         }
         //Draw title
-        SDL_Color titleColor={255,255,0,255};//Yellow
+        SDL_Color titleColor= {255,255,0,255}; //Yellow
         TTF_Font* titleFont=TTF_OpenFont("consola.ttf",48);
         if(!titleFont)
         {
@@ -174,7 +174,7 @@ public:
             if(titleSurface)
             {
                 SDL_Texture *titleTexture=SDL_CreateTextureFromSurface(renderer,titleSurface);
-                SDL_Rect titleRect={(SCREEN_WIDTH-titleSurface->w)/2,100,titleSurface->w,titleSurface->h};
+                SDL_Rect titleRect= {(SCREEN_WIDTH-titleSurface->w)/2,100,titleSurface->w,titleSurface->h};
                 SDL_RenderCopy(renderer,titleTexture,NULL,&titleRect);
                 SDL_FreeSurface(titleSurface);
                 SDL_DestroyTexture(titleTexture);
@@ -201,7 +201,7 @@ public:
         SDL_RenderDrawRect(renderer,&exitButton);
 
         //Draw button text
-        SDL_Color textColor={255,255,255,255};//White text
+        SDL_Color textColor= {255,255,255,255}; //White text
         renderText("Một người chơi",onePlayerButton,textColor);
         renderText("Hai người chơi",twoPlayerButton,textColor);
         renderText("Thoát",exitButton,textColor);
@@ -225,7 +225,7 @@ public:
 
                 // Check if One Player button was clicked
                 if(mouseX>=onePlayerButton.x&&mouseX<=(onePlayerButton.x+onePlayerButton.w)&&
-                   mouseY>=onePlayerButton.y&&mouseY<=(onePlayerButton.y+onePlayerButton.h))
+                        mouseY>=onePlayerButton.y&&mouseY<=(onePlayerButton.y+onePlayerButton.h))
                 {
                     startGame=true;
                     running=false;
@@ -281,7 +281,7 @@ public:
         x=startX;
         y=startY;
         active=true;
-        rect={x,y,TILE_SIZE,TILE_SIZE};
+        rect= {x,y,TILE_SIZE,TILE_SIZE};
     }
     void render(SDL_Renderer *renderer)
     {
@@ -308,7 +308,7 @@ public:
         dx=dirX;
         dy=dirY;
         active=true;
-        rect={x,y,BULLET_SIZE,BULLET_SIZE};//Square shape bullet
+        rect= {x,y,BULLET_SIZE,BULLET_SIZE}; //Square shape bullet
     }
 
     void move()
@@ -344,7 +344,7 @@ public:
 
     Explosion(int posX,int posY):x(posX),y(posY),active(true)
     {
-        rect={x,y,TILE_SIZE,TILE_SIZE};
+        rect= {x,y,TILE_SIZE,TILE_SIZE};
         startTime=SDL_GetTicks();
     }
 
@@ -368,7 +368,7 @@ public:
     {
         x=startX;
         y=startY;
-        rect={x,y,TILE_SIZE,TILE_SIZE};
+        rect= {x,y,TILE_SIZE,TILE_SIZE};
         dirX=0;
         dirY=-1;//Default direction up
         active=true;
@@ -382,8 +382,8 @@ public:
         this->dirX=dx;
         this->dirY=dy;
 
-        SDL_Rect newRect={newX,newY,TILE_SIZE,TILE_SIZE};
-        for(int i=0;i<int(walls.size());i++)
+        SDL_Rect newRect= {newX,newY,TILE_SIZE,TILE_SIZE};
+        for(int i=0; i<int(walls.size()); i++)
         {
             if (walls[i].active&&SDL_HasIntersection(&newRect,&walls[i].rect))
             {
@@ -457,7 +457,7 @@ public:
         shootDelay=EnemyshootDelay;
         x=startX;
         y=startY;
-        rect={x,y,TILE_SIZE,TILE_SIZE};
+        rect= {x,y,TILE_SIZE,TILE_SIZE};
         dirX=0;
         dirY=1;
         active=true;
@@ -503,7 +503,7 @@ public:
 
         int newX=x+this->dirX*enemySpeed;
         int newY=y+this->dirY*enemySpeed;
-        SDL_Rect newRect={newX,newY,TILE_SIZE,TILE_SIZE};
+        SDL_Rect newRect= {newX,newY,TILE_SIZE,TILE_SIZE};
 
         bool wallCollision =false;
         for(const auto&wall:walls)
@@ -592,12 +592,13 @@ public:
     bool returnToMenu;
     SDL_Texture *explosionTexture=nullptr;
     vector<Explosion>explosions;
+    Mix_Music *backgroundMusic;
 
     void generateWalls()
     {
-        for(int i=1;i<MAP_HEIGHT-1;i++)
+        for(int i=1; i<MAP_HEIGHT-1; i++)
         {
-            for(int j=1;j<MAP_WIDTH-1;j++)
+            for(int j=1; j<MAP_WIDTH-1; j++)
             {
                 if(Map[i][j]==1)
                 {
@@ -611,7 +612,7 @@ public:
     void spawnEnemies()
     {
         enemies.clear();
-        for(int i=0;i<EnemiesNum;++i)
+        for(int i=0; i<EnemiesNum; ++i)
         {
             int ex,ey;
             bool validPosition=false;
@@ -659,6 +660,16 @@ public:
         {
             std::cerr<<"SDL could not initialize! SDL_Error: "<<SDL_GetError()<<std::endl;
             running=false;
+        }
+        if(Mix_OpenAudio(44100,MIX_DEFAULT_FORMAT,2,2048)<0)
+        {
+            std::cerr<<"SDL_mixer could not initialize! SDL_mixer Error: "<<Mix_GetError()<<std::endl;
+            running=false;
+        }
+        backgroundMusic = Mix_LoadMUS("backgroundmusic.mp3");
+        if(!backgroundMusic)
+        {
+            std::cerr<<"Failed to load background music! SDL_mixer Error: "<<Mix_GetError()<<std::endl;
         }
         window=SDL_CreateWindow("Battle City",SDL_WINDOWPOS_CENTERED,SDL_WINDOWPOS_CENTERED,SCREEN_WIDTH,SCREEN_HEIGHT,SDL_WINDOW_SHOWN);
         if (!window)
@@ -708,7 +719,7 @@ public:
             std::cerr<<"Failed to load explosion texture! IMG_Error: "<<IMG_GetError()<<std::endl;
         }
 
-        pauseButton={SCREEN_WIDTH-TILE_SIZE-30,0,30,30};
+        pauseButton= {SCREEN_WIDTH-TILE_SIZE-30,0,30,30};
         generateWalls();
         spawnEnemies();
 
@@ -897,7 +908,7 @@ public:
                 int mouseX,mouseY;
                 SDL_GetMouseState(&mouseX,&mouseY);
                 if(!isPaused&&mouseX>=pauseButton.x&&mouseX<=pauseButton.x+pauseButton.w&&
-                              mouseY>=pauseButton.y&&mouseY<=pauseButton.y+pauseButton.h)
+                        mouseY>=pauseButton.y&&mouseY<=pauseButton.y+pauseButton.h)
                 {
                     isPaused=true;
                 }
@@ -905,13 +916,13 @@ public:
                 if(isPaused)
                 {
                     if (mouseX>=continueButton.x&&mouseX<=continueButton.x+continueButton.w&&
-                        mouseY>=continueButton.y&&mouseY<=continueButton.y+continueButton.h)
+                            mouseY>=continueButton.y&&mouseY<=continueButton.y+continueButton.h)
                     {
                         isPaused=false;
                     }
 
                     if(mouseX>=exitGameButton.x&&mouseX<=exitGameButton.x+exitGameButton.w&&
-                        mouseY>=exitGameButton.y&&mouseY<=exitGameButton.y+exitGameButton.h)
+                            mouseY>=exitGameButton.y&&mouseY<=exitGameButton.y+exitGameButton.h)
                     {
                         running=false;
                     }
@@ -920,7 +931,7 @@ public:
                 {
                     // Restart button
                     if(mouseX>=restartButton.x&&mouseX<=restartButton.x+restartButton.w&&
-                       mouseY>=restartButton.y&&mouseY<=restartButton.y+restartButton.h)
+                            mouseY>=restartButton.y&&mouseY<=restartButton.y+restartButton.h)
                     {
                         returnToMenu=true;
                         running=false;
@@ -928,7 +939,7 @@ public:
 
                     // Exit button
                     if(mouseX>=exitButton.x&&mouseX<=exitButton.x+exitButton.w&&
-                       mouseY>=exitButton.y&&mouseY<=exitButton.y+exitButton.h)
+                            mouseY>=exitButton.y&&mouseY<=exitButton.y+exitButton.h)
                     {
                         running=false;
                     }
@@ -974,12 +985,12 @@ public:
             std::cerr<<"Failed to load font!"<<std::endl;
             return;
         }
-        SDL_Color textColor={255,255,255,255};
+        SDL_Color textColor= {255,255,255,255};
 
         std::string enemyText="Địch còn lại: "+std::to_string(enemyCount);
         SDL_Surface *enemySurface=TTF_RenderUTF8_Solid(font,enemyText.c_str(),textColor);
         SDL_Texture *enemyTexture=SDL_CreateTextureFromSurface(renderer,enemySurface);
-        SDL_Rect enemyRect={10,10,enemySurface->w,enemySurface->h};
+        SDL_Rect enemyRect= {10,10,enemySurface->w,enemySurface->h};
         SDL_RenderCopy(renderer,enemyTexture,NULL,&enemyRect);
         SDL_FreeSurface(enemySurface);
         SDL_DestroyTexture(enemyTexture);
@@ -987,7 +998,7 @@ public:
         std::string player1Text="Xe tăng 1: "+std::to_string(player1Lives)+" mạng";
         SDL_Surface *player1Surface=TTF_RenderUTF8_Solid(font,player1Text.c_str(),textColor);
         SDL_Texture *player1Texture=SDL_CreateTextureFromSurface(renderer,player1Surface);
-        SDL_Rect player1Rect={10,40,player1Surface->w,player1Surface->h};
+        SDL_Rect player1Rect= {10,40,player1Surface->w,player1Surface->h};
         SDL_RenderCopy(renderer,player1Texture,NULL,&player1Rect);
         SDL_FreeSurface(player1Surface);
         SDL_DestroyTexture(player1Texture);
@@ -997,7 +1008,7 @@ public:
             std::string player2Text="Xe tăng 2: "+std::to_string(player2Lives)+" mạng";
             SDL_Surface *player2Surface=TTF_RenderUTF8_Solid(font,player2Text.c_str(),textColor);
             SDL_Texture *player2Texture=SDL_CreateTextureFromSurface(renderer,player2Surface);
-            SDL_Rect player2Rect={10,70,player2Surface->w,player2Surface->h};
+            SDL_Rect player2Rect= {10,70,player2Surface->w,player2Surface->h};
             SDL_RenderCopy(renderer,player2Texture,NULL,&player2Rect);
             SDL_FreeSurface(player2Surface);
             SDL_DestroyTexture(player2Texture);
@@ -1015,14 +1026,14 @@ public:
             return;
         }
 
-        SDL_Color textColor={255,255,255,255};
+        SDL_Color textColor= {255,255,255,255};
         std::string resultText=victory?"Chiến Thắng!":"Thua Cuộc!";
 
         SDL_Surface *resultSurface=TTF_RenderUTF8_Solid(font,resultText.c_str(),textColor);
         SDL_Texture *resultTexture=SDL_CreateTextureFromSurface(renderer,resultSurface);
-        SDL_Rect resultRect={(SCREEN_WIDTH-resultSurface->w)/2,(SCREEN_HEIGHT-resultSurface->h)/2,resultSurface->w,resultSurface->h};
+        SDL_Rect resultRect= {(SCREEN_WIDTH-resultSurface->w)/2,(SCREEN_HEIGHT-resultSurface->h)/2,resultSurface->w,resultSurface->h};
         SDL_SetRenderDrawColor(renderer,0,0,0,200);
-        SDL_Rect overlay={0,0,SCREEN_WIDTH,SCREEN_HEIGHT};
+        SDL_Rect overlay= {0,0,SCREEN_WIDTH,SCREEN_HEIGHT};
         SDL_RenderFillRect(renderer,&overlay);
         SDL_RenderCopy(renderer,resultTexture,NULL,&resultRect);
         SDL_FreeSurface(resultSurface);
@@ -1031,12 +1042,12 @@ public:
         int buttonWidth=200;
         int buttonHeight=50;
         int startY=SCREEN_HEIGHT/2+50;
-        restartButton={(SCREEN_WIDTH-buttonWidth)/2-buttonWidth/2-10,startY,buttonWidth,buttonHeight};
-        exitButton={(SCREEN_WIDTH-buttonWidth)/2+buttonWidth/2+10,startY,buttonWidth,buttonHeight};
+        restartButton= {(SCREEN_WIDTH-buttonWidth)/2-buttonWidth/2-10,startY,buttonWidth,buttonHeight};
+        exitButton= {(SCREEN_WIDTH-buttonWidth)/2+buttonWidth/2+10,startY,buttonWidth,buttonHeight};
         SDL_SetRenderDrawColor(renderer,100,100,100,255);
         SDL_RenderFillRect(renderer,&restartButton);
         SDL_RenderFillRect(renderer,&exitButton);
-        SDL_Color buttonTextColor={255,255,255,255};
+        SDL_Color buttonTextColor= {255,255,255,255};
         renderText("Chơi lại",restartButton,buttonTextColor);
         renderText("Thoát",exitButton,buttonTextColor);
 
@@ -1046,21 +1057,21 @@ public:
     void renderPauseMenu()
     {
         SDL_SetRenderDrawColor(renderer,0,0,0,128);
-        SDL_Rect overlay={0,0,SCREEN_WIDTH,SCREEN_HEIGHT};
+        SDL_Rect overlay= {0,0,SCREEN_WIDTH,SCREEN_HEIGHT};
         SDL_RenderFillRect(renderer,&overlay);
 
         int buttonWidth=200;
         int buttonHeight=50;
         int startY=SCREEN_HEIGHT/2-buttonHeight-20;
 
-        continueButton={(SCREEN_WIDTH-buttonWidth)/2,startY,buttonWidth,buttonHeight};
-        exitGameButton={(SCREEN_WIDTH-buttonWidth)/2,startY+buttonHeight+20,buttonWidth,buttonHeight};
+        continueButton= {(SCREEN_WIDTH-buttonWidth)/2,startY,buttonWidth,buttonHeight};
+        exitGameButton= {(SCREEN_WIDTH-buttonWidth)/2,startY+buttonHeight+20,buttonWidth,buttonHeight};
 
         SDL_SetRenderDrawColor(renderer,100,100,100,255);
         SDL_RenderFillRect(renderer,&continueButton);
         SDL_RenderFillRect(renderer,&exitGameButton);
 
-        SDL_Color textColor={255,255,255,255};
+        SDL_Color textColor= {255,255,255,255};
         renderText("Tiếp tục",continueButton,textColor);
         renderText("Thoát",exitGameButton,textColor);
     }
@@ -1082,7 +1093,7 @@ public:
         }
 
         SDL_Texture *textTexture=SDL_CreateTextureFromSurface(renderer,textSurface);
-        SDL_Rect textRect={rect.x+(rect.w-textSurface->w)/2,rect.y+(rect.h-textSurface->h)/2,textSurface->w,textSurface->h};
+        SDL_Rect textRect= {rect.x+(rect.w-textSurface->w)/2,rect.y+(rect.h-textSurface->h)/2,textSurface->w,textSurface->h};
         SDL_RenderCopy(renderer,textTexture,NULL,&textRect);
         SDL_FreeSurface(textSurface);
         SDL_DestroyTexture(textTexture);
@@ -1097,7 +1108,7 @@ public:
         //Draw the grass background
         //if(grassTexture)
         //{
-            //Draw the grass background only in the playable area
+        //Draw the grass background only in the playable area
         //    SDL_Rect playArea={TILE_SIZE,TILE_SIZE,SCREEN_WIDTH-2*TILE_SIZE,SCREEN_HEIGHT-2*TILE_SIZE};
         //    SDL_RenderCopy(renderer,grassTexture,NULL,&playArea);
         //}
@@ -1106,19 +1117,19 @@ public:
         if(stoneTexture)
         {
             //Top boundary
-            SDL_Rect topBoundary={0,0,SCREEN_WIDTH,TILE_SIZE};
+            SDL_Rect topBoundary= {0,0,SCREEN_WIDTH,TILE_SIZE};
             SDL_RenderCopy(renderer, stoneTexture,NULL,&topBoundary);
 
             //Bottom boundary
-            SDL_Rect bottomBoundary={0,SCREEN_HEIGHT-TILE_SIZE,SCREEN_WIDTH,TILE_SIZE};
+            SDL_Rect bottomBoundary= {0,SCREEN_HEIGHT-TILE_SIZE,SCREEN_WIDTH,TILE_SIZE};
             SDL_RenderCopy(renderer,stoneTexture,NULL,&bottomBoundary);
 
             //Left boundary
-            SDL_Rect leftBoundary={0,0,TILE_SIZE,SCREEN_HEIGHT};
+            SDL_Rect leftBoundary= {0,0,TILE_SIZE,SCREEN_HEIGHT};
             SDL_RenderCopy(renderer,stoneTexture,NULL,&leftBoundary);
 
             //Right boundary
-            SDL_Rect rightBoundary={SCREEN_WIDTH-TILE_SIZE,0,TILE_SIZE,SCREEN_HEIGHT};
+            SDL_Rect rightBoundary= {SCREEN_WIDTH-TILE_SIZE,0,TILE_SIZE,SCREEN_HEIGHT};
             SDL_RenderCopy(renderer,stoneTexture,NULL,&rightBoundary);
         }
         else
@@ -1127,19 +1138,19 @@ public:
             SDL_SetRenderDrawColor(renderer,128,128,128,255);
 
             //Top boundary
-            SDL_Rect topBoundary={0,0,SCREEN_WIDTH,TILE_SIZE};
+            SDL_Rect topBoundary= {0,0,SCREEN_WIDTH,TILE_SIZE};
             SDL_RenderFillRect(renderer,&topBoundary);
 
             //Bottom boundary
-            SDL_Rect bottomBoundary={0,SCREEN_HEIGHT-TILE_SIZE,SCREEN_WIDTH,TILE_SIZE};
+            SDL_Rect bottomBoundary= {0,SCREEN_HEIGHT-TILE_SIZE,SCREEN_WIDTH,TILE_SIZE};
             SDL_RenderFillRect(renderer,&bottomBoundary);
 
             //Left boundary
-            SDL_Rect leftBoundary={0,0,TILE_SIZE,SCREEN_HEIGHT};
+            SDL_Rect leftBoundary= {0,0,TILE_SIZE,SCREEN_HEIGHT};
             SDL_RenderFillRect(renderer,&leftBoundary);
 
             //Right boundary
-            SDL_Rect rightBoundary={SCREEN_WIDTH-TILE_SIZE,0,TILE_SIZE,SCREEN_HEIGHT};
+            SDL_Rect rightBoundary= {SCREEN_WIDTH-TILE_SIZE,0,TILE_SIZE,SCREEN_HEIGHT};
             SDL_RenderFillRect(renderer,&rightBoundary);
         }
 
@@ -1151,7 +1162,7 @@ public:
 
 
         //Draw walls with brick texture instead of solid color
-        for(int i=0;i<int(walls.size());++i)
+        for(int i=0; i<int(walls.size()); ++i)
         {
             if(walls[i].active)
             {
@@ -1231,7 +1242,7 @@ public:
 
         if(explosionTexture)
         {
-            for(auto i=explosions.begin();i!= explosions.end();)
+            for(auto i=explosions.begin(); i!= explosions.end();)
             {
                 if (i->isExpired())
                 {
@@ -1261,6 +1272,13 @@ public:
 
     void run()
     {
+        if(backgroundMusic)
+        {
+            if(Mix_PlayMusic(backgroundMusic,-1)==-1)
+            {
+                std::cerr<<"Failed to play background music! SDL_mixer Error: "<<Mix_GetError()<<std::endl;
+            }
+        }
         while(running)
         {
             handleEvents();
@@ -1300,6 +1318,11 @@ public:
         {
             SDL_DestroyTexture(explosionTexture);
         }
+        if(backgroundMusic)
+        {
+            Mix_FreeMusic(backgroundMusic);
+        }
+        Mix_CloseAudio();
 
         SDL_DestroyRenderer(renderer);
         SDL_DestroyWindow(window);
