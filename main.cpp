@@ -59,6 +59,7 @@ public:
     SDL_Rect onePlayerButton;
     SDL_Rect twoPlayerButton;
     SDL_Rect exitButton;
+    Mix_Music *menuMusic;
 
     Menu()
     {
@@ -70,6 +71,13 @@ public:
         if(SDL_Init(SDL_INIT_VIDEO)<0)
         {
             std::cerr<<"SDL could not initialize! SDL_Error: "<<SDL_GetError()<<std::endl;
+            running=false;
+            return;
+        }
+
+        if(Mix_OpenAudio(44100,MIX_DEFAULT_FORMAT,2,2048)< 0)
+        {
+            std::cerr<<"SDL_mixer could not initialize! SDL_mixer Error: "<<Mix_GetError()<<std::endl;
             running=false;
             return;
         }
@@ -98,6 +106,12 @@ public:
             std::cerr<<"Renderer could not be created! SDL_Error: "<<SDL_GetError()<<std::endl;
             running=false;
             return;
+        }
+
+        menuMusic=Mix_LoadMUS("menumusic.mp3");
+        if (!menuMusic)
+        {
+            std::cerr<<"Failed to load menu music! SDL_mixer Error: "<<Mix_GetError()<<std::endl;
         }
 
         //Tải ảnh nền menu và kiểm tra quá trình tải
@@ -250,6 +264,13 @@ public:
 
     void run()
     {
+        if(menuMusic)
+        {
+            if(Mix_PlayMusic(menuMusic,0)==-1)
+            {
+                std::cerr<<"Failed to play menu music! SDL_mixer Error: "<<Mix_GetError()<<std::endl;
+            }
+        }
         while(running)
         {
             handleEvents();
@@ -263,6 +284,10 @@ public:
         if(backgroundTexture)
         {
             SDL_DestroyTexture(backgroundTexture);
+        }
+        if(menuMusic)
+        {
+            Mix_FreeMusic(menuMusic);
         }
         SDL_DestroyRenderer(renderer);
         SDL_DestroyWindow(window);
@@ -1376,6 +1401,7 @@ int main(int argc,char *argv[])
     }
 
     //Đóng các thư viện SDL
+    Mix_CloseAudio();
     IMG_Quit();
     TTF_Quit();
     return 0;
