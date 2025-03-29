@@ -108,14 +108,14 @@ public:
             return;
         }
 
-        menuMusic=Mix_LoadMUS("menumusic.mp3");
+        menuMusic=Mix_LoadMUS("media/menumusic.mp3");
         if (!menuMusic)
         {
             std::cerr<<"Failed to load menu music! SDL_mixer Error: "<<Mix_GetError()<<std::endl;
         }
 
         //Tải ảnh nền menu và kiểm tra quá trình tải
-        backgroundTexture=IMG_LoadTexture(renderer,"menu_background.png");
+        backgroundTexture=IMG_LoadTexture(renderer,"media/menu_background.png");
         if(!backgroundTexture)
         {
             std::cerr<<"Failed to load menu background! IMG_Error: "<<IMG_GetError()<<std::endl;
@@ -134,7 +134,7 @@ public:
     void renderText(const char *text,SDL_Rect rect,SDL_Color color)
     {
         //Tải phông và kiểm tra quá trình tải
-        TTF_Font *font=TTF_OpenFont("consola.ttf",24);
+        TTF_Font *font=TTF_OpenFont("media/consola.ttf",24);
         if(!font)
         {
             std::cerr<<"Failed to load font! TTF_Error: "<<TTF_GetError()<<std::endl;
@@ -175,11 +175,11 @@ public:
         }
         //Draw title
         SDL_Color titleColor= {255,255,0,255}; //Yellow
-        TTF_Font* titleFont=TTF_OpenFont("consola.ttf",48);
+        TTF_Font* titleFont=TTF_OpenFont("media/consola.ttf",48);
         if(!titleFont)
         {
             //Fallback if font file not found
-            titleFont=TTF_OpenFont("consola.ttf",48);
+            titleFont=TTF_OpenFont("media/consola.ttf",48);
         }
 
         if(titleFont)
@@ -348,9 +348,18 @@ public:
         }
     }
 
-    void render(SDL_Renderer *renderer)
+    void render(SDL_Renderer *renderer,SDL_Texture *bulletTexture)
     {
-        if (active)
+        if(bulletTexture)
+        {
+            double angle=0;
+            if(dx==0&&dy==-1)angle=0;
+            else if(dx==0&&dy==1)angle=180;
+            else if(dx==-1&&dy==0)angle=270;
+            else if(dx==1&&dy==0)angle=90;
+            SDL_RenderCopyEx(renderer,bulletTexture,NULL,&rect,angle,NULL,SDL_FLIP_NONE);
+        }
+        else
         {
             SDL_SetRenderDrawColor(renderer,255,255,255,255);
             SDL_RenderFillRect(renderer,&rect);
@@ -453,14 +462,14 @@ public:
         }), bullets.end());
     }
 
-    void render(SDL_Renderer *renderer,int id)
+    void render(SDL_Renderer *renderer,int id,SDL_Texture *bulletTexture)
     {
         if(id==1)SDL_SetRenderDrawColor(renderer,0,250,250,255);
         else SDL_SetRenderDrawColor(renderer,0,17,250,255);
         SDL_RenderFillRect(renderer,&rect);
         for (auto&bullet:bullets)
         {
-            bullet.render(renderer);
+            bullet.render(renderer,bulletTexture);
         }
     }
 };
@@ -575,13 +584,13 @@ public:
         }),bullets.end());
     }
 
-    void render(SDL_Renderer *renderer)
+    void render(SDL_Renderer *renderer,SDL_Texture *bulletTexture)
     {
         SDL_SetRenderDrawColor(renderer,255,0,0,255);
         SDL_RenderFillRect(renderer,&rect);
         for(auto&bullet:bullets)
         {
-            bullet.render(renderer);
+            bullet.render(renderer,bulletTexture);
         }
     }
 };
@@ -618,6 +627,7 @@ public:
     SDL_Texture *explosionTexture=nullptr;
     vector<Explosion>explosions;
     Mix_Music *backgroundMusic;
+    SDL_Texture *bulletTexture=nullptr;
 
     void generateWalls()
     {
@@ -691,7 +701,7 @@ public:
             std::cerr<<"SDL_mixer could not initialize! SDL_mixer Error: "<<Mix_GetError()<<std::endl;
             running=false;
         }
-        backgroundMusic = Mix_LoadMUS("backgroundmusic.mp3");
+        backgroundMusic=Mix_LoadMUS("media/backgroundmusic.mp3");
         if(!backgroundMusic)
         {
             std::cerr<<"Failed to load background music! SDL_mixer Error: "<<Mix_GetError()<<std::endl;
@@ -713,35 +723,40 @@ public:
         //{
         //    std::cerr<<"Failed to load grass background! IMG_Error: "<<IMG_GetError()<<std::endl;
         //}
-        brickTexture=IMG_LoadTexture(renderer,"brick.jpg");
+        brickTexture=IMG_LoadTexture(renderer,"media/brick.jpg");
         if(!brickTexture)
         {
             std::cerr<<"Failed to load brick texture! IMG_Error: "<<IMG_GetError()<<std::endl;
         }
-        stoneTexture=IMG_LoadTexture(renderer,"stone.jpg");
+        stoneTexture=IMG_LoadTexture(renderer,"media/stone.jpg");
         if(!stoneTexture)
         {
             std::cerr<<"Failed to load stone texture! IMG_Error: "<<IMG_GetError()<<std::endl;
         }
-        yellowTankTexture=IMG_LoadTexture(renderer,"yellow_tank.png");
+        yellowTankTexture=IMG_LoadTexture(renderer,"media/yellow_tank.png");
         if(!yellowTankTexture)
         {
             std::cerr<<"Failed to load yellow tank texture! IMG_Error: "<<IMG_GetError()<<std::endl;
         }
-        greenTankTexture=IMG_LoadTexture(renderer,"green_tank.png");
+        greenTankTexture=IMG_LoadTexture(renderer,"media/green_tank.png");
         if(!greenTankTexture)
         {
             std::cerr<<"Failed to load green tank texture! IMG_Error: "<<IMG_GetError()<<std::endl;
         }
-        redTankTexture=IMG_LoadTexture(renderer,"red_tank.png");
+        redTankTexture=IMG_LoadTexture(renderer,"media/red_tank.png");
         if(!redTankTexture)
         {
             std::cerr<<"Failed to load red tank texture! IMG_Error: "<<IMG_GetError()<<std::endl;
         }
-        explosionTexture=IMG_LoadTexture(renderer,"explosion.jpg");
+        explosionTexture=IMG_LoadTexture(renderer,"media/explosion.jpg");
         if (!explosionTexture)
         {
             std::cerr<<"Failed to load explosion texture! IMG_Error: "<<IMG_GetError()<<std::endl;
+        }
+        bulletTexture=IMG_LoadTexture(renderer,"media/bullet.png");
+        if (!bulletTexture)
+        {
+            std::cerr<<"Failed to load bullet texture! IMG_Error: "<<IMG_GetError()<<std::endl;
         }
 
         pauseButton= {SCREEN_WIDTH-TILE_SIZE-30,0,30,30};
@@ -1004,7 +1019,7 @@ public:
 
     void renderGameStatus()
     {
-        TTF_Font *font=TTF_OpenFont("consola.ttf",20);
+        TTF_Font *font=TTF_OpenFont("media/consola.ttf",20);
         if(!font)
         {
             std::cerr<<"Failed to load font!"<<std::endl;
@@ -1044,7 +1059,7 @@ public:
 
     void renderGameResult()
     {
-        TTF_Font *font=TTF_OpenFont("consola.ttf",48);
+        TTF_Font *font=TTF_OpenFont("media/consola.ttf",48);
         if(!font)
         {
             std::cerr<<"Failed to load font!"<<std::endl;
@@ -1103,7 +1118,7 @@ public:
 
     void renderText(const char *text,SDL_Rect rect,SDL_Color color)
     {
-        TTF_Font *font=TTF_OpenFont("consola.ttf",24);
+        TTF_Font *font=TTF_OpenFont("media/consola.ttf",24);
         if (!font)
         {
             std::cerr<<"Failed to load font! TTF_Error: "<<TTF_GetError()<< std::endl;
@@ -1215,12 +1230,12 @@ public:
                 SDL_RenderCopyEx(renderer,yellowTankTexture,NULL,&player1.rect,angle,NULL,SDL_FLIP_NONE);
                 for(auto &bullet:player1.bullets)
                 {
-                    bullet.render(renderer);
+                    bullet.render(renderer,bulletTexture);
                 }
             }
             else
             {
-                player1.render(renderer,1);
+                player1.render(renderer,1,bulletTexture);
             }
         }
         if(twoPlayerMode&&player2.active)
@@ -1235,12 +1250,12 @@ public:
                 SDL_RenderCopyEx(renderer,greenTankTexture,NULL,&player2.rect,angle,NULL,SDL_FLIP_NONE);
                 for(auto &bullet:player2.bullets)
                 {
-                    bullet.render(renderer);
+                    bullet.render(renderer,bulletTexture);
                 }
             }
             else
             {
-                player2.render(renderer,2);
+                player2.render(renderer,2,bulletTexture);
             }
         }
 
@@ -1256,12 +1271,12 @@ public:
                 SDL_RenderCopyEx(renderer,redTankTexture,NULL,&enemy.rect,angle,NULL,SDL_FLIP_NONE);
                 for(auto &bullet:enemy.bullets)
                 {
-                    bullet.render(renderer);
+                    bullet.render(renderer,bulletTexture);
                 }
             }
             else
             {
-                enemy.render(renderer);
+                enemy.render(renderer,bulletTexture);
             }
         }
 
@@ -1346,6 +1361,10 @@ public:
         if(backgroundMusic)
         {
             Mix_FreeMusic(backgroundMusic);
+        }
+        if(bulletTexture)
+        {
+            SDL_DestroyTexture(bulletTexture);
         }
         Mix_CloseAudio();
 
