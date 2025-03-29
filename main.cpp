@@ -951,6 +951,7 @@ public:
                         mouseY>=pauseButton.y&&mouseY<=pauseButton.y+pauseButton.h)
                 {
                     isPaused=true;
+                    Mix_PauseMusic();
                 }
 
                 if(isPaused)
@@ -959,6 +960,7 @@ public:
                             mouseY>=continueButton.y&&mouseY<=continueButton.y+continueButton.h)
                     {
                         isPaused=false;
+                        Mix_ResumeMusic();
                     }
 
                     if(mouseX>=exitGameButton.x&&mouseX<=exitGameButton.x+exitGameButton.w&&
@@ -990,6 +992,8 @@ public:
                 if(event.key.keysym.sym==SDLK_ESCAPE)
                 {
                     isPaused=!isPaused;
+                    if(isPaused)Mix_PauseMusic();
+                    else Mix_ResumeMusic();
                 }
             }
         }
