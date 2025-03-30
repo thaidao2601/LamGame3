@@ -38,7 +38,6 @@ public:
     int player2Lives;
     bool gameOver;
     bool victory;
-    SDL_Rect restartButton;
     SDL_Rect exitButton;
     bool returnToMenu;
     SDL_Texture *explosionTexture=nullptr;
@@ -48,6 +47,7 @@ public:
 
     Game(bool twoPlayer);
     ~Game();
+    void Initialize();
     void generateWalls();
     void spawnEnemies();
     PlayerTank spawnPlayer1();
